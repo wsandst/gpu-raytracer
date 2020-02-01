@@ -3,7 +3,7 @@
 # Edit at https://www.gitignore.io/?templates=c++,visualstudio
 
 ### Library files ###
-lib\
+lib/
 
 ### C++ ###
 # Prerequisites
