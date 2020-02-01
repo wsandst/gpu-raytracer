@@ -1,6 +1,5 @@
-# C++ boilerplate code for SDL with OpenGL  
-Easy to use boilerplate code for SDL with OpenGL in C++. Includes some other handy libraries stb_image and tinyobjloader 
-Inbuilt support for two rendering types: ScreenTexture, which is an easy way to just render a bitmap to the screen, and Geometry, which supports 3D models but no texture support.  
+# C++ OpenGL Raytracer
+OpenGL Raytracer using Compute Shaders  
   
 # Install instructions  
 1. Clone the repo  
