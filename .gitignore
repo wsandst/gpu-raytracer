@@ -4,6 +4,7 @@
 
 ### Library files ###
 lib/
+resources/
 
 ### C++ ###
 # Prerequisites

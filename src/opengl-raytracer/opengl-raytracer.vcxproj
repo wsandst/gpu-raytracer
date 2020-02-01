@@ -21,9 +21,9 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
     <ProjectGuid>{B0347C35-B9C5-4357-A869-A5D3D8FD33FC}</ProjectGuid>
-    <RootNamespace>opengl-boilerplate</RootNamespace>
+    <RootNamespace>opengl-raytracer</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
-    <ProjectName>opengl-boilerplate</ProjectName>
+    <ProjectName>opengl-raytracer</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">

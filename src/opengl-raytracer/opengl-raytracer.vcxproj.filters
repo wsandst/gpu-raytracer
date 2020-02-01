@@ -35,8 +35,10 @@
     <ClInclude Include="Helpers.h">
       <Filter>Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="Mesh.h" />
     <ClInclude Include="FileHandler.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Mesh.h">
       <Filter>Graphics</Filter>
     </ClInclude>
   </ItemGroup>

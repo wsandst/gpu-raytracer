@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.27703.2026
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "opengl-boilerplate", "opengl-boilerplate\opengl-boilerplate.vcxproj", "{B0347C35-B9C5-4357-A869-A5D3D8FD33FC}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "opengl-raytracer", "opengl-raytracer\opengl-raytracer.vcxproj", "{B0347C35-B9C5-4357-A869-A5D3D8FD33FC}"
 EndProject
 Global
 	GlobalSection(Performance) = preSolution
