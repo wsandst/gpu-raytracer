@@ -1,2 +1,0 @@
-STB image read, write, resize and packing:
-https://github.com/nothings/stb
