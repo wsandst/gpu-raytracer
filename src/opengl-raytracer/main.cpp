@@ -26,22 +26,12 @@ int main(int argc, char** argv)
 	int frameCount = 0;
 
 	//Screen texture example
-	/*
-	renderer.renderType = renderer.ScreenTexture;
+	
+	renderer.renderType = renderer.PathTracer;
 	renderer.init();
 
-	std::vector<unsigned char> bitmap(1024 * 1024 * 3);
-
-	for (size_t i = 0; i < bitmap.size(); i += 3)
-	{
-		bitmap[i] = 100;
-		bitmap[i + 1] = 0;
-		bitmap[i + 2] = 0;
-	}
-
-	renderer.updateScreenTexture(&bitmap[0], 1024, 1024);*/
-
 	//3D Mesh example
+	/*
 	renderer.renderType = renderer.Geometry;
 	renderer.init();
 
@@ -51,7 +41,7 @@ int main(int argc, char** argv)
 	std::vector<Mesh> meshes = std::vector<Mesh>();
 	meshes.push_back(head);
 
-	renderer.loadVBOs(meshes);
+	renderer.loadVBOs(meshes); */
 
 	while (!quit) {
 		

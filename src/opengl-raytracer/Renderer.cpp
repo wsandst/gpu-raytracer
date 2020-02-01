@@ -21,40 +21,46 @@ void Renderer::render()
 	camera.calculateProjectionMatrix();
 	camera.calculateViewMatrix();
 
-	glActiveTexture(GL_TEXTURE0);
-
 	switch (renderType)
 	{
-		case ScreenTexture: drawScreenTexture(); break;
-		case Geometry: drawGeometry(); break;
+		case PathTracer: drawPathTracer(); break;
+		case Rasterizer: drawRasterizer(); break;
 	}
-
-	glBindVertexArray(VAO);
-	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
 	SDL_GL_SwapWindow(window);
 }
 
-void Renderer::drawGeometry()
+void Renderer::drawRasterizer()
 {
-	geometryShader.use();
+	rasterizerShader.use();
 
 	for (auto& it : geometryVBOs) { //Draw chunks
 		glm::mat4 matrix = glm::mat4(camera.getProjectionMatrix() * camera.getViewMatrix() * it.translation);
-		geometryShader.setMat4("matrix", matrix);
+		rasterizerShader.setMat4("matrix", matrix);
 		glBindVertexArray(it.VAO);
 		glDrawArrays(GL_TRIANGLES, 0, it.size);
 	}
 }
 
-void Renderer::initGeometry()
+void Renderer::initRasterizer()
 {
-	geometryShader = Shader("shaders/geometry.vert", "shaders/geometry.frag");
+	rasterizerShader = Shader("shaders/geometry.vert", "shaders/geometry.frag");
 }
 
-void Renderer::drawScreenTexture()
+void Renderer::drawPathTracer()
 {
+	 // launch compute shaders!
+	pathTracerComputeShader.use();
+	glDispatchCompute((GLuint)screenWidth, (GLuint)screenHeight, 1);
+	
+	// make sure writing to image has finished before read
+	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+	glActiveTexture(GL_TEXTURE0);
 	screenTextureShader.use();
+	glBindVertexArray(VAO);
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
 }
 
 void Renderer::init()
@@ -66,8 +72,8 @@ void Renderer::init()
 
 	switch (renderType)
 	{
-	case ScreenTexture: initScreenTexture(); break;
-	case Geometry: initGeometry(); break;
+	case PathTracer: initPathTracer(); break;
+	case Rasterizer: initRasterizer(); break;
 	}
 }
 
@@ -119,29 +125,35 @@ void Renderer::resizeWindow(int width, int height)
 	SDL_SetWindowPosition(window, newScreenPosX, newScreenPosY);
 }
 
-//Update the covering screen texture with a new texture
-void Renderer::updateScreenTexture(unsigned char* bytearray, int width, int height) 
+void Renderer::initPathTracer()
 {
-	glBindTexture(GL_TEXTURE_2D, texture);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, bytearray);
-
-	int newWidth = (width / (float)height) * 512;
-	resizeWindow(newWidth, 512);
-
-}
-
-void Renderer::initScreenTexture()
-{
+	//Screen Texture
 	//stbi_set_flip_vertically_on_load(true);
 	screenTextureShader = Shader("shaders/screentexture.vert", "shaders/screentexture.frag");
+	pathTracerComputeShader = ComputeShader("shaders/pathtracer.comp");
 
-	glGenTextures(1, &texture);
-	glBindTexture(GL_TEXTURE_2D, texture);
+	//Compute shader
+	// dimensions of the image
+	glGenTextures(1, &textureOutput);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, textureOutput);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, windowWidth, windowHeight, 0, GL_RGBA, GL_FLOAT,
+		NULL);
+	glBindImageTexture(0, textureOutput, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
 
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	int work_grp_cnt[3];
+
+	glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 0, &work_grp_cnt[0]);
+	glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 1, &work_grp_cnt[1]);
+	glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 2, &work_grp_cnt[2]);
+
+	printf("max global (total) work group size x:%i y:%i z:%i\n",
+		work_grp_cnt[0], work_grp_cnt[1], work_grp_cnt[2]);
+
 }
 
 void Renderer::close()

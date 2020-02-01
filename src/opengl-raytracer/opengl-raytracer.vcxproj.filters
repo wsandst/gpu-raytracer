@@ -12,6 +12,9 @@
     <ClCompile Include="Shader.cpp">
       <Filter>Graphics</Filter>
     </ClCompile>
+    <ClCompile Include="ComputeShader.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera.h">
@@ -39,6 +42,9 @@
       <Filter>Graphics</Filter>
     </ClInclude>
     <ClInclude Include="Mesh.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="ComputeShader.h">
       <Filter>Graphics</Filter>
     </ClInclude>
   </ItemGroup>

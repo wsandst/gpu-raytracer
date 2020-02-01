@@ -9,6 +9,7 @@
 #include "glm/glm.hpp"
 
 #include "Shader.h"
+#include "ComputeShader.h"
 #include "Camera.h"
 #include "VBOWrapper.h"
 #include "Mesh.h"
@@ -18,12 +19,12 @@
 
 class Renderer {
 public:
-	const char* windowTitle = "C++ OpenGL Boilerplate";
+	const char* windowTitle = "OpenGL Raytracer using Compute Shaders";
     const int windowWidth = 1024, windowHeight = 1024;
 	int screenHeight, screenWidth;
 
-	enum RenderType {ScreenTexture, Geometry};
-	RenderType renderType = ScreenTexture;
+	enum RenderType {PathTracer, Rasterizer};
+	RenderType renderType = PathTracer;
 
     float deltaTime = 0.0f;
     Camera camera;
@@ -36,16 +37,16 @@ public:
 
     void render();
 
-	void drawGeometry();
+	void drawRasterizer();
 
-	void initGeometry();
+	void initRasterizer();
 
 	//Functions related to drawing a screen texture from a byte array
-	void drawScreenTexture();
+	void drawPathTracer();
 
     void updateScreenTexture(unsigned char *byteArray, int width = 1024, int height = 1024);
 
-    void initScreenTexture();
+    void initPathTracer();
 
     void init();
 
@@ -54,12 +55,13 @@ public:
 	void loadVBOs(std::vector<Mesh>& meshes);
 
 private:
-    Shader screenTextureShader, geometryShader;
+    Shader screenTextureShader, rasterizerShader;
+	ComputeShader pathTracerComputeShader;
     SDL_Window *window;
 	std::vector<GeometryVBO> geometryVBOs;
 
     SDL_GLContext glContext;
-    unsigned int VAO, VBO, texture;
+    unsigned int VAO, VBO, textureOutput;
     float lastFrame = 0.0f;
 
     void initOpenGL();
