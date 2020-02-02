@@ -20,6 +20,7 @@ void Renderer::render()
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	camera.calculateProjectionMatrix();
 	camera.calculateViewMatrix();
+	camera.getCornerRays();
 
 	switch (renderType)
 	{
@@ -49,8 +50,16 @@ void Renderer::initRasterizer()
 
 void Renderer::drawPathTracer()
 {
-	 // launch compute shaders!
 	pathTracerComputeShader.use();
+
+	//Set corner ray uniforms to give the program the view
+	pathTracerComputeShader.setVec3("eye", camera.getPosition());
+	pathTracerComputeShader.setVec3("ray00", camera.ray00);
+	pathTracerComputeShader.setVec3("ray10", camera.ray10);
+	pathTracerComputeShader.setVec3("ray01", camera.ray01);
+	pathTracerComputeShader.setVec3("ray11", camera.ray11);
+
+	 // launch compute shaders!
 	glDispatchCompute((GLuint)screenWidth, (GLuint)screenHeight, 1);
 	
 	// make sure writing to image has finished before read
@@ -144,16 +153,6 @@ void Renderer::initPathTracer()
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, windowWidth, windowHeight, 0, GL_RGBA, GL_FLOAT,
 		NULL);
 	glBindImageTexture(0, textureOutput, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
-
-	int work_grp_cnt[3];
-
-	glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 0, &work_grp_cnt[0]);
-	glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 1, &work_grp_cnt[1]);
-	glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 2, &work_grp_cnt[2]);
-
-	printf("max global (total) work group size x:%i y:%i z:%i\n",
-		work_grp_cnt[0], work_grp_cnt[1], work_grp_cnt[2]);
-
 }
 
 void Renderer::close()

@@ -32,7 +32,7 @@ int main(int argc, char** argv)
 
 	//3D Mesh example
 	/*
-	renderer.renderType = renderer.Geometry;
+	renderer.renderType = renderer.Rasterizer;
 	renderer.init();
 
 	std::vector<float> headVertices = FileHandler::loadObj("teapot.obj");
@@ -44,7 +44,6 @@ int main(int argc, char** argv)
 	renderer.loadVBOs(meshes); */
 
 	while (!quit) {
-		
 		if (inputHandler.windowContext) {
 			renderer.render();
 			if (frameCount % 180 == 0)
