@@ -32,7 +32,7 @@ struct sphere{
 //Object definitions
 #define MAX_SCENE_BOUNDS 1000.0
 #define NUM_BOXES 1
-#define NUM_SPHERES 1
+#define NUM_SPHERES 2
 
 const box boxes[] = {
   /* The ground */
@@ -44,10 +44,11 @@ const box boxes[] = {
 const sphere spheres[] = {
   /* The ground */
   /* sphere in the middle */
- sphere(vec3(-0.5, 0.0, -0.5), 1.0)
+ sphere(vec3(-0.5, 0.0, -0.5), 1.0),
+ sphere(vec3(-2.5, 0.0, -0.5), 1.0)
 };
 
-struct Hitinfo {
+struct hitinfo {
   vec2 lambda;
   int bi;
 };
@@ -64,24 +65,7 @@ vec2 intersectBox(rayObj ray, const box b) {
   return vec2(tNear, tFar);
 }
 
-bool intersectBoxes(rayObj ray, out Hitinfo info) {
-  float smallest = MAX_SCENE_BOUNDS;
-  bool found = false;
-  for (int i = 0; i < NUM_BOXES; i++) {
-    vec2 lambda = intersectBox(ray, boxes[i]);
-    if (lambda.x > 0.0 && lambda.x < lambda.y && lambda.x < smallest) {
-      info.lambda = lambda;
-      info.bi = i;
-      smallest = lambda.x;
-      found = true;
-    }
-  }
-  return found;
-}
-
-// sphere intersections
-
-bool intersectSphere(rayObj ray, const sphere s)
+bool intersectSphere(rayObj ray, const sphere s, out float t)
 {
     float t_max = MAX_SCENE_BOUNDS;
     float t_min = 0;
@@ -93,16 +77,16 @@ bool intersectSphere(rayObj ray, const sphere s)
 
     if (discriminant > 0.0)
     {
-        float temp = (-b - sqrt(b * b - a * c)) / a;
+        t = (-b - sqrt(b * b - a * c)) / a;
 
-        if (temp < t_max && temp > t_min)
+        if (t < t_max && t > t_min)
         {
             return true;
         }
 
-        temp = (-b + sqrt(b * b - a * c)) / a;
+        t = (-b + sqrt(b * b - a * c)) / a;
 
-        if (temp < t_max && temp > t_min)
+        if (t < t_max && t > t_min)
         {
             return true;
         }
@@ -111,23 +95,45 @@ bool intersectSphere(rayObj ray, const sphere s)
     return false;
 }
 
-bool intersectSpheres(rayObj ray, out Hitinfo info)
-{
-  return intersectSphere(ray, spheres[0]);
-}
-
 vec4 trace(rayObj ray) {
-  Hitinfo i;
-  if (intersectSpheres(ray, i)) {
-    return vec4(1.0, 0.0, 0.0, 1.0);
-  }
-  if (intersectBoxes(ray, i)) {
-    vec4 gray = vec4(i.bi / 10.0 + 0.8);
-    return vec4(gray.rgb, 1.0);
-  }
-  return vec4(0.0, 0.6, 0.8, 1.0);
-}
+  vec4 color = vec4(0.0, 0.0, 0.0, 1.0);
 
+  float smallest = MAX_SCENE_BOUNDS;
+  bool found = false;
+  hitinfo info;
+  //Go through boxes
+  for (int i = 0; i < NUM_BOXES; i++) {
+    vec2 lambda = intersectBox(ray, boxes[i]);
+    if (lambda.x > 0.0 && lambda.x < lambda.y && lambda.x < smallest) {
+      info.lambda = lambda;
+      info.bi = i;
+      smallest = lambda.x;
+      found = true;
+    }
+  }
+  //Go through spheres
+  float tHit = MAX_SCENE_BOUNDS;
+  float t = 0;
+  for (int i = 0; i < NUM_SPHERES; i++) {
+    bool hit = intersectSphere(ray, spheres[i], t);
+    if (hit) //Ray intersects with sphere
+    {
+      if (t > 0 && t < tHit) { //If it is closer than the previous intersect
+        tHit = t;
+        vec3 gray = vec3(i / 10.0 + 0.8);
+        color = vec4(gray, 1.0);
+        found = true;
+      }
+    }
+  }
+
+  if (found)
+  {
+    return color;
+  }
+
+  return vec4(0.0, 0.6, 0.8, 1.0); //No hit, return sky
+}
 
 layout (local_size_x = 16, local_size_y = 8) in;
 void main(void) {
