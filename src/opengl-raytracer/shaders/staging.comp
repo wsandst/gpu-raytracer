@@ -1,0 +1,18 @@
+        float t0, t1; // solutions for t if the ray intersects 
+        // analytic solution
+        Vec3f L = orig - center; 
+        float a = dir.dotProduct(dir); 
+        float b = 2 * dir.dotProduct(L); 
+        float c = L.dotProduct(L) - radius2; 
+        if (!solveQuadratic(a, b, c, t0, t1)) return false; 
+        
+        if (t0 > t1) std::swap(t0, t1); 
+ 
+        if (t0 < 0) { 
+            t0 = t1; // if t0 is negative, let's use t1 instead 
+            if (t0 < 0) return false; // both t0 and t1 are negative 
+        } 
+ 
+        t = t0; 
+ 
+        return true; 

@@ -2,35 +2,61 @@
 
 layout(binding = 0, rgba32f) uniform image2D framebuffer;
 
+//Uniforms
+
 uniform vec3 eye;
 uniform vec3 ray00;
 uniform vec3 ray01;
 uniform vec3 ray10;
 uniform vec3 ray11;
 
+struct rayObj
+{
+  vec3 dir;
+  vec3 ori;
+};
+
+//Object types
+
 struct box {
   vec3 min;
   vec3 max;
 };
 
-#define MAX_SCENE_BOUNDS 100.0
-#define NUM_BOXES 2
+struct sphere{
+  vec3 pos;
+  float radius;
+};
+
+
+//Object definitions
+#define MAX_SCENE_BOUNDS 1000.0
+#define NUM_BOXES 1
+#define NUM_SPHERES 1
 
 const box boxes[] = {
   /* The ground */
-  {vec3(-5.0, -0.1, -5.0), vec3(5.0, 0.0, 5.0)},
-  /* Box in the middle */
-  {vec3(-0.5, 0.0, -0.5), vec3(0.5, 1.0, 0.5)}
+ box(vec3(-5.0, -0.1, -5.0), vec3(5.0, 0.0, 5.0))
+  /* box in the middle */
+  //{vec3(-0.5, 0.0, -0.5), vec3(0.5, 1.0, 0.5)}
 };
 
-struct hitinfo {
+const sphere spheres[] = {
+  /* The ground */
+  /* sphere in the middle */
+ sphere(vec3(-0.5, 0.0, -0.5), 1.0)
+};
+
+struct Hitinfo {
   vec2 lambda;
   int bi;
 };
 
-vec2 intersectBox(vec3 origin, vec3 dir, const box b) {
-  vec3 tMin = (b.min - origin) / dir;
-  vec3 tMax = (b.max - origin) / dir;
+// box intersections
+
+vec2 intersectBox(rayObj ray, const box b) {
+  vec3 tMin = (b.min - ray.ori) / ray.dir;
+  vec3 tMax = (b.max - ray.ori) / ray.dir;
   vec3 t1 = min(tMin, tMax);
   vec3 t2 = max(tMin, tMax);
   float tNear = max(max(t1.x, t1.y), t1.z);
@@ -38,11 +64,11 @@ vec2 intersectBox(vec3 origin, vec3 dir, const box b) {
   return vec2(tNear, tFar);
 }
 
-bool intersectBoxes(vec3 origin, vec3 dir, out hitinfo info) {
+bool intersectBoxes(rayObj ray, out Hitinfo info) {
   float smallest = MAX_SCENE_BOUNDS;
   bool found = false;
   for (int i = 0; i < NUM_BOXES; i++) {
-    vec2 lambda = intersectBox(origin, dir, boxes[i]);
+    vec2 lambda = intersectBox(ray, boxes[i]);
     if (lambda.x > 0.0 && lambda.x < lambda.y && lambda.x < smallest) {
       info.lambda = lambda;
       info.bi = i;
@@ -53,14 +79,55 @@ bool intersectBoxes(vec3 origin, vec3 dir, out hitinfo info) {
   return found;
 }
 
-vec4 trace(vec3 origin, vec3 dir) {
-  hitinfo i;
-  if (intersectBoxes(origin, dir, i)) {
+// sphere intersections
+
+bool intersectSphere(rayObj ray, const sphere s)
+{
+    float t_max = MAX_SCENE_BOUNDS;
+    float t_min = 0;
+    vec3 oc = ray.ori - s.pos;
+    float a = dot(ray.dir, ray.dir);
+    float b = dot(oc, ray.dir);
+    float c = dot(oc, oc) - s.radius * s.radius;
+    float discriminant = b * b - a * c;
+
+    if (discriminant > 0.0)
+    {
+        float temp = (-b - sqrt(b * b - a * c)) / a;
+
+        if (temp < t_max && temp > t_min)
+        {
+            return true;
+        }
+
+        temp = (-b + sqrt(b * b - a * c)) / a;
+
+        if (temp < t_max && temp > t_min)
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool intersectSpheres(rayObj ray, out Hitinfo info)
+{
+  return intersectSphere(ray, spheres[0]);
+}
+
+vec4 trace(rayObj ray) {
+  Hitinfo i;
+  if (intersectSpheres(ray, i)) {
+    return vec4(1.0, 0.0, 0.0, 1.0);
+  }
+  if (intersectBoxes(ray, i)) {
     vec4 gray = vec4(i.bi / 10.0 + 0.8);
     return vec4(gray.rgb, 1.0);
   }
-  return vec4(0.0, 0.0, 0.0, 1.0);
+  return vec4(0.0, 0.6, 0.8, 1.0);
 }
+
 
 layout (local_size_x = 16, local_size_y = 8) in;
 void main(void) {
@@ -71,6 +138,7 @@ void main(void) {
   }
   vec2 pos = vec2(pix) / vec2(size.x - 1, size.y - 1);
   vec3 dir = mix(mix(ray00, ray01, pos.y), mix(ray10, ray11, pos.y), pos.x);
-  vec4 color = trace(eye, dir);
+  rayObj ray = rayObj(dir, eye);
+  vec4 color = trace(ray);
   imageStore(framebuffer, pix, color);
 }
