@@ -48,6 +48,8 @@ public:
 
     void initPathTracer();
 
+	void initSkyBox();
+
     void init();
 
     void close();
@@ -61,7 +63,7 @@ private:
 	std::vector<GeometryVBO> geometryVBOs;
 
     SDL_GLContext glContext;
-    unsigned int VAO, VBO, textureOutput;
+    unsigned int VAO, VBO, textureOutput, skyboxTex;
     float lastFrame = 0.0f;
 
     void initOpenGL();

@@ -52,12 +52,22 @@ void Renderer::drawPathTracer()
 {
 	pathTracerComputeShader.use();
 
+	int framebufferTexLocation = glGetUniformLocation(pathTracerComputeShader.ID, "framebuffer");
+	int skyBoxTexLocation = glGetUniformLocation(pathTracerComputeShader.ID, "skybox");
+	glUniform1i(framebufferTexLocation, 0);
+	glUniform1i(skyBoxTexLocation, 1);
 	//Set corner ray uniforms to give the program the view
 	pathTracerComputeShader.setVec3("eye", camera.getPosition());
 	pathTracerComputeShader.setVec3("ray00", camera.ray00);
 	pathTracerComputeShader.setVec3("ray10", camera.ray10);
 	pathTracerComputeShader.setVec3("ray01", camera.ray01);
 	pathTracerComputeShader.setVec3("ray11", camera.ray11);
+
+	glActiveTexture(GL_TEXTURE0 + 0);
+	glBindTexture(GL_TEXTURE_2D, textureOutput);
+
+	glActiveTexture(GL_TEXTURE0 + 1);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, skyboxTex);
 
 	 // launch compute shaders!
 	glDispatchCompute((GLuint)screenWidth, (GLuint)screenHeight, 1);
@@ -153,6 +163,29 @@ void Renderer::initPathTracer()
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, windowWidth, windowHeight, 0, GL_RGBA, GL_FLOAT,
 		NULL);
 	glBindImageTexture(0, textureOutput, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
+
+	initSkyBox();
+}
+
+void Renderer::initSkyBox()
+{
+	stbi_set_flip_vertically_on_load(false);
+	std::vector <Texture> skyBoxTextures = { FileHandler::loadImage("skybox/front.tga"), FileHandler::loadImage("skybox/back.tga"), FileHandler::loadImage("skybox/up.tga"), FileHandler::loadImage("skybox/down.tga"),
+		FileHandler::loadImage("skybox/right.tga"), FileHandler::loadImage("skybox/left.tga") };
+	glGenTextures(1, &skyboxTex);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, skyboxTex);
+
+	for (unsigned int i = 0; i < skyBoxTextures.size(); i++)
+	{
+		glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
+			0, GL_RGB, skyBoxTextures[i].width, skyBoxTextures[i].height, 0, GL_RGB, GL_UNSIGNED_BYTE, skyBoxTextures[i].data);
+	}
+
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 }
 
 void Renderer::close()
