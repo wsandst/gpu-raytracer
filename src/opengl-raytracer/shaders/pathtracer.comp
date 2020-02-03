@@ -18,14 +18,21 @@ struct rayObj
 
 //Object types
 
+struct material
+{
+  vec3 color;
+};
+
 struct box {
   vec3 min;
   vec3 max;
+  material mat;
 };
 
 struct sphere{
   vec3 pos;
   float radius;
+  material mat;
 };
 
 
@@ -36,7 +43,7 @@ struct sphere{
 
 const box boxes[] = {
   /* The ground */
- box(vec3(-5.0, -0.1, -5.0), vec3(5.0, 0.0, 5.0))
+ box(vec3(-5.0, -0.1, -5.0), vec3(5.0, 0.0, 5.0), material(vec3(0.7)))
   /* box in the middle */
   //{vec3(-0.5, 0.0, -0.5), vec3(0.5, 1.0, 0.5)}
 };
@@ -44,8 +51,8 @@ const box boxes[] = {
 const sphere spheres[] = {
   /* The ground */
   /* sphere in the middle */
- sphere(vec3(-0.5, 0.0, -0.5), 1.0),
- sphere(vec3(-2.5, 0.0, -0.5), 1.0)
+ sphere(vec3(-0.5, 1.0, -0.5), 1.0, material(vec3(0.0, 1.0, 0.0))),
+ sphere(vec3(-2.5, 1.0, -0.5), 1.0, material(vec3(1.0, 0.0, 0.0)))
 };
 
 struct hitinfo {
@@ -98,21 +105,20 @@ bool intersectSphere(rayObj ray, const sphere s, out float t)
 vec4 trace(rayObj ray) {
   vec4 color = vec4(0.0, 0.0, 0.0, 1.0);
 
-  float smallest = MAX_SCENE_BOUNDS;
+  float tHit = MAX_SCENE_BOUNDS;
   bool found = false;
   hitinfo info;
   //Go through boxes
   for (int i = 0; i < NUM_BOXES; i++) {
     vec2 lambda = intersectBox(ray, boxes[i]);
-    if (lambda.x > 0.0 && lambda.x < lambda.y && lambda.x < smallest) {
-      info.lambda = lambda;
-      info.bi = i;
-      smallest = lambda.x;
+    if (lambda.x > 0.0 && lambda.x < lambda.y && lambda.x < tHit) {
+      tHit = lambda.x;
+      color = vec4(boxes[i].mat.color, 1.0);
       found = true;
     }
   }
   //Go through spheres
-  float tHit = MAX_SCENE_BOUNDS;
+
   float t = 0;
   for (int i = 0; i < NUM_SPHERES; i++) {
     bool hit = intersectSphere(ray, spheres[i], t);
@@ -120,8 +126,7 @@ vec4 trace(rayObj ray) {
     {
       if (t > 0 && t < tHit) { //If it is closer than the previous intersect
         tHit = t;
-        vec3 gray = vec3(i / 10.0 + 0.8);
-        color = vec4(gray, 1.0);
+        color = vec4(spheres[i].mat.color, 1.0);
         found = true;
       }
     }
