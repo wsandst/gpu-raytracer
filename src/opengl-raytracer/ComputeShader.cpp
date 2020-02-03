@@ -63,10 +63,6 @@ void ComputeShader::setVec2(const std::string& name, float x, float y) const
 void ComputeShader::setVec3(const std::string& name, const glm::vec3& value) const
 {
 	int location = glGetUniformLocation(ID, name.c_str());
-	if (location == -1)
-	{
-		std::cout << "OpenGL: Unable to assign to uniform " << name << std::endl;
-	}
 	glUniform3fv(location, 1, &value[0]);
 }
 

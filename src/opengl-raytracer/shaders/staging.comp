@@ -1,29 +1,59 @@
+vec4 traceNew(rayObj ray) {
+  int depth = 0;
+  //hitInfo skyHit = hitInfo(MAX_SCENE_BOUNDS, 0, 0, material(vec4(0.0, 0.6, 0.8, 1.0), 0));
+  hitInfo skyHit = hitInfo(MAX_SCENE_BOUNDS, 0, 0, material(vec4(0.0, 0.0, 0.0, 1.0), 0));
 
+  hitInfo hits[MAX_RAY_DEPTH];
 
-float t0, t1; // solutions for t if the ray intersects 
-// analytic solution
-vec3 length = s.pos - origin; 
-float tca = dot(length, dir);
-// if (tca < 0) return false;
-float d2 = dot(length, length) - tca * tca; 
-float c2 = s.pos * s.pos;
-if (d2 > c2) return false; 
-float thc = sqrt(radius2 - d2); 
-t0 = tca - thc; 
-t1 = tca + thc; 
+  while (depth < MAX_RAY_DEPTH)
+  {
+    hitInfo hit;
+    hit.t = MAX_SCENE_BOUNDS;
+    float t = 0;
+    bool hasHit = false;
+    bool hasHitTemp = false;
 
-if (t0 > t1) 
-{
-    float temp = t0;
-    t0 = t1;
-    t1 = temp;
+    //Check if the ray intersects with box objects
+    for (int i = 0; i < NUM_BOXES; i++) {
+      hasHitTemp = intersectBox(ray, boxes[i], t); //Check if the ray hits the box
+      if (hasHitTemp && t > 0 && t < hit.t) { //Is the hit closer to the camera than the previous hit?
+        hit.t = t;
+        hit.mat = boxes[i].mat;
+        hit.objType = 1;
+        hasHit = true;
+      }
+    }
+
+    //Check if the ray intersects with sphere objects
+    for (int i = 0; i < NUM_SPHERES; i++) {
+      hasHitTemp = intersectSphere(ray, spheres[i], t); //Check if the ray hits the sphere
+      if (hasHitTemp && t > 0 && t < hit.t) { //Is the hit closer to the ray origin than the previous hit?
+        hit.t = t;
+        hit.mat = spheres[i].mat;
+        hit.objType = 2;
+        hasHit = true;
+      }
+    }
+
+    if (hasHit) //If object is hit, calculate new ray
+    {
+      hits[depth] = hit;
+      vec3 pos = getRayPos(ray, hit.t);
+      vec3 normal = sphereNormal(pos, spheres[hit.objIndex]);
+      ray = reflect(ray, pos, normal);
+      depth = depth + 1;
+    }
+    else
+    {
+      hits[depth] = skyHit;
+      break;
+    }
+  }
+
+  vec4 color = hits[0].mat.color;
+  for (int i = 1; i < depth; i++) { 
+    color = mix(hits[i].mat.color, color, 0.5);
+  }
+
+  return color; //Return the color value of this pixel
 }
-
-if (t0 < 0) { 
-    t0 = t1; // if t0 is negative, let's use t1 instead 
-    if (t0 < 0) return false; // both t0 and t1 are negative 
-} 
-
-float t = t0; 
-
-return true; 

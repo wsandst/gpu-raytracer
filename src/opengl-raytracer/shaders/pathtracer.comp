@@ -10,19 +10,28 @@ uniform vec3 ray01;
 uniform vec3 ray10;
 uniform vec3 ray11;
 
+//Support structs
 struct rayObj
 {
   vec3 dir;
   vec3 ori;
 };
 
-//Object types
-
 struct material
 {
-  vec3 color;
+  vec4 color;
+  float reflection;
 };
 
+struct hitInfo
+{
+  float t; //Distance along ray
+  int objIndex; //Normal of the hit object
+  int objType; //Box 1, Sphere 2
+  material mat;
+};
+
+//Object types
 struct box {
   vec3 min;
   vec3 max;
@@ -35,15 +44,17 @@ struct sphere{
   material mat;
 };
 
+//Raycasting settings
+#define MAX_RAY_DEPTH 2
 
 //Object definitions
 #define MAX_SCENE_BOUNDS 1000.0
-#define NUM_BOXES 1
+#define NUM_BOXES 0
 #define NUM_SPHERES 2
 
 const box boxes[] = {
   /* The ground */
- box(vec3(-5.0, -0.1, -5.0), vec3(5.0, 0.0, 5.0), material(vec3(0.7)))
+ box(vec3(-5.0, -0.1, -5.0), vec3(5.0, 0.0, 5.0), material(vec4(0.7, 0.7, 0.7, 1.0), 1))
   /* box in the middle */
   //{vec3(-0.5, 0.0, -0.5), vec3(0.5, 1.0, 0.5)}
 };
@@ -51,16 +62,12 @@ const box boxes[] = {
 const sphere spheres[] = {
   /* The ground */
   /* sphere in the middle */
- sphere(vec3(-0.5, 1.0, -0.5), 1.0, material(vec3(0.0, 1.0, 0.0))),
- sphere(vec3(-2.5, 1.0, -0.5), 1.0, material(vec3(1.0, 0.0, 0.0)))
+ sphere(vec3(-0.5, 1.0, -0.5), 1.0, material(vec4(0.0, 1.0, 0.0, 1.0), 1)),
+ sphere(vec3(-10.5, 1.0, -0.5), 4.0, material(vec4(1.0, 0.0, 0.0, 1.0), 1))
 };
 
-struct hitinfo {
-  vec2 lambda;
-  int bi;
-};
-
-// box intersections
+//Intersect functions. Determines if a ray hits a certain object.
+//t is the location of the hit. Can get it as a point through the function: ray.ori + ray.dir * t
 
 bool intersectBox(rayObj ray, const box b, out float t) {
   vec3 tMin = (b.min - ray.ori) / ray.dir;
@@ -98,28 +105,81 @@ bool intersectSphere(rayObj ray, const sphere s, out float t)
     return false;
 }
 
+//Various functions relating to the propagation of a ray
+
+vec3 getRayPos(rayObj ray, float t)
+{
+  return ray.ori + ray.dir * t;
+}
+
+vec3 sphereNormal(vec3 point, sphere s)
+{
+  return normalize(point - s.pos); 
+}
+
+rayObj reflect(rayObj ray, vec3 pos, vec3 normal)
+{
+  vec3 dir = ray.dir - 2 * dot(ray.dir, normal) * normal; 
+  return rayObj(normalize(dir), pos);
+}
+
 vec4 trace(rayObj ray) {
-  vec4 color = vec4(0.0, 0.6, 0.8, 1.0); //Default hit color, sky color
+  int depth = 0;
+  hitInfo skyHit = hitInfo(MAX_SCENE_BOUNDS, 0, 0, material(vec4(0.0, 0.6, 0.8, 1.0), 0));
+  //hitInfo skyHit = hitInfo(MAX_SCENE_BOUNDS, 0, 0, material(vec4(0.0, 0.0, 0.0, 1.0), 0));
 
-  float tHit = MAX_SCENE_BOUNDS; //Furthest hit possible, at the edge of scene
-  float t = 0;
-  bool hit = false;
+  vec4 color;
 
-  //Check if the ray intersects with box objects
-  for (int i = 0; i < NUM_BOXES; i++) {
-     bool hit = intersectBox(ray, boxes[i], t); //Check if the ray hits the box
-     if (hit && t > 0 && t < tHit) { //Is the hit closer to the camera than the previous hit?
-      tHit = t;
-      color = vec4(boxes[i].mat.color, 1.0);
+  while (depth < MAX_RAY_DEPTH)
+  {
+    hitInfo hit;
+    hit.t = MAX_SCENE_BOUNDS;
+    float t = 0;
+    bool hasHit = false;
+    bool hasHitTemp = false;
+
+    //Check if the ray intersects with box objects
+    for (int i = 0; i < NUM_BOXES; i++) {
+      hasHitTemp = intersectBox(ray, boxes[i], t); //Check if the ray hits the box
+      if (hasHitTemp && t > 0 && t < hit.t) { //Is the hit closer to the camera than the previous hit?
+        hit.t = t;
+        hit.mat = boxes[i].mat;
+        hit.objType = 1;
+        hit.objIndex = i;
+        hasHit = true;
+      }
     }
-  }
 
-  //Check if the ray intersects with sphere objects
-  for (int i = 0; i < NUM_SPHERES; i++) {
-    bool hit = intersectSphere(ray, spheres[i], t); //Check if the ray hits the sphere
-    if (hit && t > 0 && t < tHit) { //Is the hit closer to the camera than the previous hit?
-      tHit = t;
-      color = vec4(spheres[i].mat.color, 1.0);
+    //Check if the ray intersects with sphere objects
+    for (int i = 0; i < NUM_SPHERES; i++) {
+      hasHitTemp = intersectSphere(ray, spheres[i], t); //Check if the ray hits the sphere
+      if (hasHitTemp && t > 0 && t < hit.t) { //Is the hit closer to the ray origin than the previous hit?
+        hit.t = t;
+        hit.mat = spheres[i].mat;
+        hit.objType = 2;
+        hit.objIndex = i;
+        hasHit = true;
+      }
+    }
+
+    if (hasHit) //If object is hit, calculate new ray
+    {
+      vec3 pos = getRayPos(ray, hit.t);
+      vec3 normal = sphereNormal(pos, spheres[hit.objIndex]);
+      ray = reflect(ray, pos, normal);
+      if (depth == 0)
+        color = hit.mat.color;
+      else
+        color = mix(color, hit.mat.color, 0.4);
+      depth = depth + 1;
+    }
+    else
+    {
+      if (depth == 0)
+        color = skyHit.mat.color;
+      else
+        color = mix(color, skyHit.mat.color, 0.2);
+      break;
     }
   }
 
