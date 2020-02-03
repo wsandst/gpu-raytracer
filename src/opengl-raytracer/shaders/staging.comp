@@ -1,59 +1,15 @@
-vec4 traceNew(rayObj ray) {
-  int depth = 0;
-  //hitInfo skyHit = hitInfo(MAX_SCENE_BOUNDS, 0, 0, material(vec4(0.0, 0.6, 0.8, 1.0), 0));
-  hitInfo skyHit = hitInfo(MAX_SCENE_BOUNDS, 0, 0, material(vec4(0.0, 0.0, 0.0, 1.0), 0));
 
-  hitInfo hits[MAX_RAY_DEPTH];
-
-  while (depth < MAX_RAY_DEPTH)
-  {
-    hitInfo hit;
-    hit.t = MAX_SCENE_BOUNDS;
-    float t = 0;
-    bool hasHit = false;
-    bool hasHitTemp = false;
-
-    //Check if the ray intersects with box objects
-    for (int i = 0; i < NUM_BOXES; i++) {
-      hasHitTemp = intersectBox(ray, boxes[i], t); //Check if the ray hits the box
-      if (hasHitTemp && t > 0 && t < hit.t) { //Is the hit closer to the camera than the previous hit?
-        hit.t = t;
-        hit.mat = boxes[i].mat;
-        hit.objType = 1;
-        hasHit = true;
-      }
-    }
-
-    //Check if the ray intersects with sphere objects
-    for (int i = 0; i < NUM_SPHERES; i++) {
-      hasHitTemp = intersectSphere(ray, spheres[i], t); //Check if the ray hits the sphere
-      if (hasHitTemp && t > 0 && t < hit.t) { //Is the hit closer to the ray origin than the previous hit?
-        hit.t = t;
-        hit.mat = spheres[i].mat;
-        hit.objType = 2;
-        hasHit = true;
-      }
-    }
-
-    if (hasHit) //If object is hit, calculate new ray
-    {
-      hits[depth] = hit;
-      vec3 pos = getRayPos(ray, hit.t);
-      vec3 normal = sphereNormal(pos, spheres[hit.objIndex]);
-      ray = reflect(ray, pos, normal);
-      depth = depth + 1;
-    }
-    else
-    {
-      hits[depth] = skyHit;
-      break;
-    }
-  }
-
-  vec4 color = hits[0].mat.color;
-  for (int i = 1; i < depth; i++) { 
-    color = mix(hits[i].mat.color, color, 0.5);
-  }
-
-  return color; //Return the color value of this pixel
-}
+vec3f Nrefr = N; 
+float NdotD = dot(normal, ray.dir)
+float etai = 1, etat = ior; // etai is the index of refraction of the medium the ray is in before entering the second medium 
+if (NdotD < 0) { 
+    // Outside the surface, cos(theta) should be positive
+    NdotI = -NdotI; 
+} 
+else { 
+    // Outside the surface, cos(theta) is already positive but reverse normal direction
+    Nrefr = -N; 
+    // swap the refraction indices
+    swap(etai, etat); 
+} 
+float eta = etai / etat; // n_1 / n_2 

@@ -22,6 +22,7 @@ struct material
 {
   vec4 color;
   float reflection;
+  float refractiveIndex;
 };
 
 struct hitInfo
@@ -45,29 +46,56 @@ struct sphere{
   material mat;
 };
 
-#define FLOAT_COMPARISON_PRECISION 0.00001
+#define FLOAT_COMPARISON_PRECISION 0.0001
 
 //Raycasting settings
-#define MAX_RAY_DEPTH 10
+#define MAX_RAY_DEPTH 100
 
 //Object definitions
 #define MAX_SCENE_BOUNDS 1000.0
-#define NUM_BOXES 1
+#define NUM_BOXES 0
 #define NUM_SPHERES 2
 
 const box boxes[] = {
   /* The ground */
- box(vec3(-5.0, -0.5, -5.0), vec3(5.0, -0.4, 5.0), material(vec4(0.0, 0.0, 1.0, 1.0), 1))
-  /* box in the middle */
-  //{vec3(-0.5, 0.0, -0.5), vec3(0.5, 1.0, 0.5)}
+ box(vec3(-5.0, -0.5, -5.0), vec3(5.0, -0.4, 5.0), material(vec4(0.0, 0.0, 1.0, 1.0), 0.95, 0.9)),
+ box(vec3(-5.2, 5.5, -5.2), vec3(4.8, 5.4, 4.8), material(vec4(0.0, 0.0, 1.0, 1.0), 0.95, 0.9))
 };
 
 const sphere spheres[] = {
   /* The ground */
   /* sphere in the middle */
- sphere(vec3(-0.5, 1.0, -0.5), 1.0, material(vec4(0.0, 1.0, 0.0, 1.0), 0.9)),
- sphere(vec3(-10.5, 1.0, -0.5), 4.0, material(vec4(1.0, 0.0, 0.0, 1.0), 0.9))
+ sphere(vec3(-0.5, 1.0, -0.5), 1.0, material(vec4(0.0, 0.0, 1.0, 1.0), 1, 1.2)),
+ sphere(vec3(-10.5, 1.0, -0.5), 4.0, material(vec4(1.0, 0.0, 0.0, 1.0), 1, 1.2))
 };
+
+
+//Various functions relating to the propagation of a ray
+
+bool fuzzy_equals(float a, float b)
+{
+  if (abs(a - b) < FLOAT_COMPARISON_PRECISION) return true;
+  return false;
+}
+
+bool fuzzy_equals(vec3 a, vec3 b)
+{
+  if (fuzzy_equals(a.x, b.x) && fuzzy_equals(a.y, b.y) && fuzzy_equals(a.z, b.z)) return true;
+  return false;
+}
+
+void swap(float a, float b)
+{
+  float temp = a;
+  a = b;
+  b = temp;
+}
+
+vec3 getRayPos(rayObj ray, float t)
+{
+  return ray.ori + ray.dir * t;
+}
+
 
 //Intersect functions. Determines if a ray hits a certain object.
 //t is the location of the hit. Can get it as a point through the function: ray.ori + ray.dir * t
@@ -108,19 +136,6 @@ bool intersectSphere(rayObj ray, const sphere s, out float t)
     return false;
 }
 
-//Various functions relating to the propagation of a ray
-
-bool fuzzy_equals(float a, float b)
-{
-  if (abs(a - b) < FLOAT_COMPARISON_PRECISION) return true;
-  return false;
-}
-
-vec3 getRayPos(rayObj ray, float t)
-{
-  return ray.ori + ray.dir * t;
-}
-
 vec3 sphereNormal(vec3 point, sphere s)
 {
   return normalize(point - s.pos); 
@@ -137,21 +152,16 @@ vec3 boxNormal(vec3 point, box b) //Assuming a box fixed in the XYZ plane
   return vec3(-1, 0, 0);
 }
 
-rayObj reflect(rayObj ray, vec3 pos, vec3 normal)
-{
-  vec3 dir = ray.dir - 2 * dot(ray.dir, normal) * normal; 
-  return rayObj(normalize(dir), pos);
-}
-
 vec4 trace(rayObj ray) {
   int depth = 0;
-  hitInfo skyHit = hitInfo(MAX_SCENE_BOUNDS, 0, 0, material(vec4(0.0, 0.6, 0.8, 1.0), 0));
+  hitInfo skyHit = hitInfo(MAX_SCENE_BOUNDS, 0, 0, material(vec4(0.0, 0.6, 0.8, 1.0), 0, 1));
   //hitInfo skyHit = hitInfo(MAX_SCENE_BOUNDS, 0, 0, material(vec4(0.0, 0.0, 0.0, 1.0), 0));
 
   vec4 color;
 
   while (depth < MAX_RAY_DEPTH)
   {
+    ray.dir = normalize(ray.dir);
     hitInfo hit, previousHit;
     hit.t = MAX_SCENE_BOUNDS;
     float t = 0;
@@ -173,6 +183,7 @@ vec4 trace(rayObj ray) {
     //Check if the ray intersects with sphere objects
     for (int i = 0; i < NUM_SPHERES; i++) {
       hasHitTemp = intersectSphere(ray, spheres[i], t); //Check if the ray hits the sphere
+      if (fuzzy_equals(getRayPos(ray, t), ray.ori)) continue; //Same point as the ray
       if (hasHitTemp && t > 0 && t < hit.t) { //Is the hit closer to the ray origin than the previous hit?
         hit.t = t;
         hit.mat = spheres[i].mat;
@@ -193,10 +204,13 @@ vec4 trace(rayObj ray) {
       if (depth == 0)
         color = hit.mat.color;
       else
-        color = mix(color, hit.mat.color, previousHit.mat.reflection);
+        color = mix(color, hit.mat.color, 0.7);
       //if (hit.mat.reflection == 0)
         //break;
-      ray = reflect(ray, pos, normal);
+
+      //ray = refract2(ray, pos, normal, hit.mat.refractiveIndex);
+      ray.ori = pos;
+      ray.dir = refract(ray.dir, normal, 1.0 / hit.mat.refractiveIndex);
       depth = depth + 1;
       previousHit = hit;
     }
@@ -205,7 +219,7 @@ vec4 trace(rayObj ray) {
       if (depth == 0)
         color = texture(skybox, ray.dir);
       else
-        color = mix(color, texture(skybox, ray.dir), previousHit.mat.reflection);
+        color = mix(color, texture(skybox,ray.dir), 0.7);
       break;
     }
   }
@@ -222,7 +236,7 @@ void main(void) {
     return;
   }
   vec2 pos = vec2(pix) / vec2(size.x - 1, size.y - 1);
-  vec3 dir = mix(mix(ray00, ray01, pos.y), mix(ray10, ray11, pos.y), pos.x);
+  vec3 dir = normalize(mix(mix(ray00, ray01, pos.y), mix(ray10, ray11, pos.y), pos.x));
   rayObj ray = rayObj(dir, eye);
   vec4 color = trace(ray);
   imageStore(framebuffer, pix, color);
