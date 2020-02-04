@@ -49,9 +49,9 @@ struct sphere{
 #define FLOAT_COMPARISON_PRECISION 0.00001
 
 //Raycasting settings
-#define MAX_RAY_DEPTH 5
+#define MAX_RAY_DEPTH 10
 #define DO_REFRACTION 0  // 0 to turn off refraction
-#define DO_REFLECTION 0  // 0 to turn off reflection
+#define DO_REFLECTION 1  // 0 to turn off reflection
 #define DO_FRESNEL    0  // 0 to turn off fresnel. fresnel will only show up if reflection is also on.
 
 //Object definitions
@@ -62,7 +62,6 @@ struct sphere{
 #define SPECULAR_STRENGTH 0.7
 #define MIXING_FACTOR 0.7
 #define BIAS 0.001
-#define SHADOW_FACTOR 0.5
 
 const vec3 sunLightColor = vec3(1.0, 1.0, 1.0); //Direction for the sunlight
 const vec3 sunLight = normalize(vec3(1.0, 0.7, 1.0));
@@ -162,92 +161,33 @@ vec3 boxNormal(vec3 point, box b) //Assuming a box fixed in the XYZ plane
   return vec3(-1, 0, 0);
 }
 
+// Generate a random float in the range [0.0f, 1.0f] using x, y, and z (based on the xor128 algorithm)
+
 float traceShadow(rayObj ray) //Check whether ray intersects with light source
 {
-  int depth = 0;
-  vec4 color;
 
-  while (depth < MAX_RAY_DEPTH)
-  {
-    ray.dir = normalize(ray.dir);
-    hitInfo hit, previousHit;
-    hit.t = MAX_SCENE_BOUNDS;
-    float t = 0;
-    bool hasHit = false;
-    bool hasHitTemp = false;
+  ray.dir = normalize(ray.dir);
+  float t = 0;
+  bool hasHit = false;
 
-    //Check if the ray intersects with box objects
-    for (int i = 0; i < NUM_BOXES; i++) {
-      hasHitTemp = intersectBox(ray, boxes[i], t); //Check if the ray hits the box
-      if (hasHitTemp && t > 0 && t < hit.t) { //Is the hit closer to the camera than the previous hit?
-        #if !(DO_REFLECTION)
-          #if !(DO_REFRACTION)
-            return 0; //Shadow!
-          #endif
-        #endif
-        hit.t = t;
-        hit.mat = boxes[i].mat;
-        hit.objType = 1;
-        hit.objIndex = i;
-        hasHit = true;
-      }
-    }
-
-    //Check if the ray intersects with sphere objects
-    for (int i = 0; i < NUM_SPHERES; i++) {
-      hasHitTemp = intersectSphere(ray, spheres[i], t); //Check if the ray hits the sphere
-      if (fuzzy_equals(getRayPos(ray, t), ray.ori)) continue; //Same point as the ray
-      if (hasHitTemp && t > 0 && t < hit.t) { //Is the hit closer to the ray origin than the previous hit?
-        #if !(DO_REFLECTION)
-          #if !(DO_REFRACTION)
-            return 0; //Shadow!
-          #endif
-        #endif
-        hit.t = t;
-        hit.mat = spheres[i].mat;
-        hit.objType = 2;
-        hit.objIndex = i;
-        hasHit = true;
-      }
-    }
-
-    if (hasHit) //If object is hit, calculate new ray
-    {
-      #if !(DO_REFLECTION)
-        #if !(DO_REFRACTION)
-          return 0; //Shadow!
-        #endif
-      #endif
-      vec3 pos = getRayPos(ray, hit.t);
-      vec3 normal;
-      if (hit.objType == 1) //Box
-        normal = boxNormal(pos, boxes[hit.objIndex]);
-      else if (hit.objType == 2)
-        normal = sphereNormal(pos, spheres[hit.objIndex]);
-      #if DO_REFLECTION
-        if (hit.mat.reflection == 0)
-          return 0; //Shadow!
-        ray.ori = pos + BIAS * normal;
-        ray.dir = reflect(ray.dir, normal);
-      #endif
-
-      #if DO_REFRACTION
-        if (hit.mat.refractiveIndex == 1 && hit.mat.color.w == 1.0)
-          return 0; //Shadow!
-        ray.ori = pos - BIAS * normal;
-        ray.dir = refract(ray.dir, normal, 1.0 / hit.mat.refractiveIndex);
-      #endif
-
-      depth = depth + 1;
-      previousHit = hit;
-    }
-    else
-    {
-      return 1;
+  //Check if the ray intersects with box objects
+  for (int i = 0; i < NUM_BOXES; i++) {
+    hasHit = intersectBox(ray, boxes[i], t); //Check if the ray hits the box
+    if (hasHit && t > 0 && t < MAX_SCENE_BOUNDS) { //Is the hit closer to the camera than the previous hit?
+      return 0; //Shadow!
     }
   }
-  
-  return 0;
+
+  //Check if the ray intersects with sphere objects
+  for (int i = 0; i < NUM_SPHERES; i++) {
+    hasHit = intersectSphere(ray, spheres[i], t); //Check if the ray hits the sphere
+    if (fuzzy_equals(getRayPos(ray, t), ray.ori)) continue; //Same point as the ray
+    if (hasHit && t > 0 && t < MAX_SCENE_BOUNDS) { //Is the hit closer to the ray origin than the previous hit?
+      return 0; //Shadow!
+    }
+  }
+
+  return 1;
 }
 
 vec4 calculateLight(vec3 normal, vec3 dir, vec3 pos)

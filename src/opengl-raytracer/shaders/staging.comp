@@ -1,17 +1,11 @@
-//Lighting functions
-float diffuse(vec3 normal, vec3 light)
+float rand(ivec2 v)
 {
-  return max(dot(normal, light), 0.0);
+  int seed = v.x + v.y * 57 + 123 * 241;
+  seed= (seed<< 13) ^ seed;
+  return (( 1.0 - ( (seed * (seed * seed * 15731 + 789221) + 1376312589) & 2147483647) / 1073741824.0f) + 1.0f) / 2.0f;
 }
 
-vec3 specular(vec3 dir, vec3 normal, vec3 light)
+vec3 randomizeVec(vec3 v, float amount)
 {
-  vec3 reflectDir = reflect(light, normal);  
-  float spec = pow(max(dot(dir, reflectDir), 0.0), 32);
-  return SPECULAR * spec * sunLightColor;  
-}
-
-vec4 calculateLight(vec3 normal, vec3 dir)
-{
-  return vec4(diffuse(normal, sunLight) + specular(dir, normal, sunLight) + AMBIENT, 1.0);
+  return v + vec3(rand(ivec2(gl_GlobalInvocationID.xy))) * amount;
 }
