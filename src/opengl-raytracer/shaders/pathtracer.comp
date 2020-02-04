@@ -165,7 +165,6 @@ vec3 boxNormal(vec3 point, box b) //Assuming a box fixed in the XYZ plane
 
 float traceShadow(rayObj ray) //Check whether ray intersects with light source
 {
-
   ray.dir = normalize(ray.dir);
   float t = 0;
   bool hasHit = false;

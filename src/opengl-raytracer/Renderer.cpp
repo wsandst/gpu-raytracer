@@ -110,6 +110,11 @@ void Renderer::initOpenGL()
 	//Wireframes
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	
+	//Antialiasing
+	SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
+	SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 2);
+	glEnable(GL_MULTISAMPLE);
+
 	glViewport(0, 0, windowWidth, windowHeight);
 }
 
