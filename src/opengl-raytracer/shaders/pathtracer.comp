@@ -46,12 +46,12 @@ struct sphere{
   material mat;
 };
 
-#define FLOAT_COMPARISON_PRECISION 0.0001
+#define FLOAT_COMPARISON_PRECISION 0.00001
 
 //Raycasting settings
 #define MAX_RAY_DEPTH 100
-#define DO_REFRACTION 0  // 0 to turn off refraction
-#define DO_REFLECTION 1  // 0 to turn off reflection
+#define DO_REFRACTION 1  // 0 to turn off refraction
+#define DO_REFLECTION 0  // 0 to turn off reflection
 #define DO_FRESNEL    0  // 0 to turn off fresnel. fresnel will only show up if reflection is also on.
 
 //Object definitions
@@ -61,6 +61,7 @@ struct sphere{
 #define AMBIENT_STRENGTH 0.1
 #define SPECULAR_STRENGTH 0.7
 #define MIXING_FACTOR 0.7
+#define BIAS 0.001
 
 const vec3 sunLightColor = vec3(1.0, 1.0, 1.0); //Direction for the sunlight
 const vec3 sunLight = normalize(vec3(1.0, 0.7, 1.0));
@@ -234,12 +235,12 @@ vec4 trace(rayObj ray) {
       #if DO_REFLECTION
         if (hit.mat.reflection == 0)
           break;
-        ray.ori = pos;
+        ray.ori = pos + BIAS * normal;
         ray.dir = reflect(ray.dir, normal);
       #endif
 
       #if DO_REFRACTION
-        ray.ori = pos;
+        ray.ori = pos - BIAS * normal;
         ray.dir = refract(ray.dir, normal, 1.0 / hit.mat.refractiveIndex);
       #endif
 
