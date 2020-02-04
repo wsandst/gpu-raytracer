@@ -1,15 +1,17 @@
+//Lighting functions
+float diffuse(vec3 normal, vec3 light)
+{
+  return max(dot(normal, light), 0.0);
+}
 
-vec3f Nrefr = N; 
-float NdotD = dot(normal, ray.dir)
-float etai = 1, etat = ior; // etai is the index of refraction of the medium the ray is in before entering the second medium 
-if (NdotD < 0) { 
-    // Outside the surface, cos(theta) should be positive
-    NdotI = -NdotI; 
-} 
-else { 
-    // Outside the surface, cos(theta) is already positive but reverse normal direction
-    Nrefr = -N; 
-    // swap the refraction indices
-    swap(etai, etat); 
-} 
-float eta = etai / etat; // n_1 / n_2 
+vec3 specular(vec3 dir, vec3 normal, vec3 light)
+{
+  vec3 reflectDir = reflect(light, normal);  
+  float spec = pow(max(dot(dir, reflectDir), 0.0), 32);
+  return SPECULAR * spec * sunLightColor;  
+}
+
+vec4 calculateLight(vec3 normal, vec3 dir)
+{
+  return vec4(diffuse(normal, sunLight) + specular(dir, normal, sunLight) + AMBIENT, 1.0);
+}
