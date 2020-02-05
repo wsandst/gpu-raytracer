@@ -2,7 +2,7 @@
 
 int count = 0;
 
-void InputHandler::handleInput(Camera &camera, float deltaTime)
+void InputHandler::handleInput(float deltaTime)
 {
 	camera.cameraStep = 0.05f * deltaTime;
 	float xOffset, yOffset;
@@ -32,9 +32,8 @@ void InputHandler::handleInput(Camera &camera, float deltaTime)
 				std::cout << "x: " << camera.getPosition().x << " y: " << camera.getPosition().y << " z: " << camera.getPosition().z << "\n";
 				break;
 				
-			case SDLK_F10:
-				currentImage = count % 3;
-				count++;
+			case SDLK_F11:
+				renderer.toggleFullscreen();
 				break;
 				
 			case SDLK_ESCAPE:
@@ -54,16 +53,28 @@ void InputHandler::handleInput(Camera &camera, float deltaTime)
 			}
 			break;
 		case SDL_MOUSEMOTION:
-			int relativeX, relativeY;
-			SDL_GetRelativeMouseState(&relativeX, &relativeY);
+			if (windowContext)
+			{
+				int relativeX, relativeY;
+				SDL_GetRelativeMouseState(&relativeX, &relativeY);
 
-			camera.updateView(relativeX * sensitivity, -relativeY * sensitivity);
+				camera.updateView(relativeX * sensitivity, -relativeY * sensitivity);
+			}
 			break;
+		case SDL_WINDOWEVENT:
+			switch (sdlEvent.window.event) {
+				case SDL_WINDOWEVENT_RESIZED:
+					renderer.resizeWindow(sdlEvent.window.data1, sdlEvent.window.data2);
+					printf("Window size changed to %dx%d \n",
+						sdlEvent.window.data1,
+						sdlEvent.window.data2);
+					break;
+			}
 		}
 	}
 }
 
-InputHandler::InputHandler()
+InputHandler::InputHandler(Renderer& _renderer, Camera& _camera) : camera(_camera), renderer(_renderer)
 {
 	SDL_SetRelativeMouseMode(SDL_TRUE);
 }

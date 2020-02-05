@@ -53,6 +53,8 @@ struct sphere{
 #define DO_REFRACTION 0  // 0 to turn off refraction
 #define DO_REFLECTION 1  // 0 to turn off reflection
 #define DO_FRESNEL    0  // 0 to turn off fresnel. fresnel will only show up if reflection is also on.
+#define DO_SHADOWS    1
+#define DO_LIGHT      1
 
 //Object definitions
 #define MAX_SCENE_BOUNDS 1000.0
@@ -62,9 +64,12 @@ struct sphere{
 #define SPECULAR_STRENGTH 0.7
 #define MIXING_FACTOR 0.7
 #define BIAS 0.001
+#define FRESNEL_BIAS 1
+#define FRESNEL_POWER 5
+#define FRESNEL_SCALE 1
 
 const vec3 sunLightColor = vec3(1.0, 1.0, 1.0); //Direction for the sunlight
-const vec3 sunLight = normalize(vec3(1.0, 0.7, 1.0));
+const vec3 sunLight = normalize(vec3(1.0, 1.0, 1.0));
 
 const box boxes[] = {
   /* The ground */
@@ -75,12 +80,24 @@ const box boxes[] = {
 const sphere spheres[] = {
   /* The ground */
   /* sphere in the middle */
- sphere(vec3(-0.5, 1.0, -0.5), 1.0, material(vec4(0.0, 0.0, 0.6, 1.0), 0.8, 1.2)),
- sphere(vec3(-10.5, 4.0, -0.5), 4.0, material(vec4(0.6, 0.0, 0.0, 1.0), 0.8, 1.2))
+ sphere(vec3(-0.5, 2.0, -0.5), 1.0, material(vec4(0.0, 0.0, 0.6, 1.0), 0.8, 1.2)),
+ sphere(vec3(-10.5, 5.0, -0.5), 4.0, material(vec4(0.6, 0.0, 0.0, 1.0), 0.8, 1.2))
 };
 
 
 //Various functions relating to the propagation of a ray
+
+float rand(ivec2 v)
+{
+  int seed = v.x + v.y * 57 + 123 * 241;
+  seed= (seed<< 13) ^ seed;
+  return (( 0.5 - ( (seed * (seed * seed * 15731 + 789221) + 1376312589) & 2147483647) / 1073741824.0f) + 1.0f) / 2.0f;
+}
+
+vec3 randomizeVec(vec3 v, float amount)
+{
+  return v + vec3(rand(ivec2(gl_GlobalInvocationID.xy))) * amount;
+}
 
 bool fuzzy_equals(float a, float b)
 {
@@ -189,6 +206,12 @@ float traceShadow(rayObj ray) //Check whether ray intersects with light source
   return 1;
 }
 
+float fresnel(vec3 dir, vec3 normal)
+{
+  return FRESNEL_SCALE * pow(1.0 + dot(dir, normal), FRESNEL_POWER);
+
+}
+
 vec4 calculateLight(vec3 normal, vec3 dir, vec3 pos)
 { //Direction for the sunlight
     // ambient
@@ -204,13 +227,21 @@ vec4 calculateLight(vec3 normal, vec3 dir, vec3 pos)
     vec3 specular = SPECULAR_STRENGTH * spec * sunLightColor;
 
     //shadow
-    float shadow = traceShadow(rayObj(sunLight, pos + normal * BIAS));
+    #if DO_SHADOWS && DO_LIGHT
+      float shadow = traceShadow(rayObj(sunLight, pos + normal * BIAS));
+    #else
+      float shadow = 1;
+    #endif
     
     //return vec4(1.0);
-    return vec4(shadow * (diffuse + specular) + ambient, 1.0);
+    #if DO_LIGHT
+      return vec4(shadow * (diffuse + specular) + ambient, 1.0);
+    #else
+      return vec4(ambient, 1.0);
+    #endif
 }
 
-vec4 trace(rayObj ray) {
+vec4 secondaryTrace(rayObj ray) {
   int depth = 0;
   hitInfo skyHit = hitInfo(MAX_SCENE_BOUNDS, 0, 0, material(vec4(0.0, 0.6, 0.8, 1.0), 0, 1));
   //hitInfo skyHit = hitInfo(MAX_SCENE_BOUNDS, 0, 0, material(vec4(0.0, 0.0, 0.0, 1.0), 0));
@@ -273,8 +304,108 @@ vec4 trace(rayObj ray) {
       #if DO_REFRACTION
         if (hit.mat.refractiveIndex == 1 && hit.mat.color.w == 1.0)
           break;
+        if (hit.mat.reflection != 0)
+          continue;
         ray.ori = pos - BIAS * normal;
         ray.dir = refract(ray.dir, normal, 1.0 / hit.mat.refractiveIndex);
+      #endif
+
+      depth = depth + 1;
+      previousHit = hit;
+    }
+    else
+    {
+      if (depth == 0)
+        color = texture(skybox, ray.dir);
+      else
+        color = mix(color, texture(skybox,ray.dir), MIXING_FACTOR);
+      break;
+    }
+  }
+  
+  return color; //Return the color value of this pixel
+}
+
+vec4 trace(rayObj ray) {
+  int depth = 0;
+  hitInfo skyHit = hitInfo(MAX_SCENE_BOUNDS, 0, 0, material(vec4(0.0, 0.6, 0.8, 1.0), 0, 1));
+  //hitInfo skyHit = hitInfo(MAX_SCENE_BOUNDS, 0, 0, material(vec4(0.0, 0.0, 0.0, 1.0), 0));
+
+  vec4 color;
+
+  while (depth < MAX_RAY_DEPTH)
+  {
+    ray.dir = normalize(ray.dir);
+    hitInfo hit, previousHit;
+    hit.t = MAX_SCENE_BOUNDS;
+    float t = 0;
+    bool hasHit = false;
+    bool hasHitTemp = false;
+
+    //Check if the ray intersects with box objects
+    for (int i = 0; i < NUM_BOXES; i++) {
+      hasHitTemp = intersectBox(ray, boxes[i], t); //Check if the ray hits the box
+      if (hasHitTemp && t > 0 && t < hit.t) { //Is the hit closer to the camera than the previous hit?
+        hit.t = t;
+        hit.mat = boxes[i].mat;
+        hit.objType = 1;
+        hit.objIndex = i;
+        hasHit = true;
+      }
+    }
+
+    //Check if the ray intersects with sphere objects
+    for (int i = 0; i < NUM_SPHERES; i++) {
+      hasHitTemp = intersectSphere(ray, spheres[i], t); //Check if the ray hits the sphere
+      if (fuzzy_equals(getRayPos(ray, t), ray.ori)) continue; //Same point as the ray
+      if (hasHitTemp && t > 0 && t < hit.t) { //Is the hit closer to the ray origin than the previous hit?
+        hit.t = t;
+        hit.mat = spheres[i].mat;
+        hit.objType = 2;
+        hit.objIndex = i;
+        hasHit = true;
+      }
+    }
+
+    if (hasHit) //If object is hit, calculate new ray
+    {
+      vec3 pos = getRayPos(ray, hit.t);
+      vec3 normal;
+      if (hit.objType == 1) //Box
+        normal = boxNormal(pos, boxes[hit.objIndex]);
+      else if (hit.objType == 2)
+        normal = sphereNormal(pos, spheres[hit.objIndex]);
+      if (depth == 0)
+        color = hit.mat.color * calculateLight(normal, ray.dir, pos);
+      else
+        color = mix(color, hit.mat.color * calculateLight(normal, ray.dir, pos), MIXING_FACTOR);
+      #if DO_FRESNEL
+        if (hit.mat.reflection == 0 && hit.mat.refractiveIndex == 1 && hit.mat.color.w == 1.0)
+            break;
+        float fr = fresnel(ray.dir, normal);
+        rayObj ray1, ray2;
+        ray1.ori = pos + BIAS * normal;
+        ray1.dir = reflect(ray.dir, normal);
+
+        ray2.ori = pos - BIAS * normal;
+        ray2.dir = refract(ray.dir, normal, 1.0 / hit.mat.refractiveIndex);
+
+        vec4 combinedColor = secondaryTrace(ray1) * fr + secondaryTrace(ray2) * (1 - fr);
+        color = mix(color, combinedColor, MIXING_FACTOR);
+      #else
+        #if DO_REFLECTION
+          if (hit.mat.reflection == 0)
+            break;
+          ray.ori = pos + BIAS * normal;
+          ray.dir = reflect(ray.dir, normal);
+        #endif
+
+        #if DO_REFRACTION
+          if (hit.mat.refractiveIndex == 1 && hit.mat.color.w == 1.0)
+            break;
+          ray.ori = pos - BIAS * normal;
+          ray.dir = refract(ray.dir, normal, 1.0 / hit.mat.refractiveIndex);
+        #endif
       #endif
 
       depth = depth + 1;

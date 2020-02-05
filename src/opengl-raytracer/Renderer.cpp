@@ -4,6 +4,12 @@ Renderer::Renderer()
 {
 }
 
+Renderer::Renderer(int windowWidth, int windowHeight)
+{
+	this->windowWidth = windowWidth;
+	this->windowHeight = windowHeight;
+}
+
 Renderer::~Renderer()
 {
 }
@@ -70,7 +76,7 @@ void Renderer::drawPathTracer()
 	glBindTexture(GL_TEXTURE_CUBE_MAP, skyboxTex);
 
 	 // launch compute shaders!
-	glDispatchCompute((GLuint)screenWidth, (GLuint)screenHeight, 1);
+	glDispatchCompute((GLuint)windowWidth, (GLuint)windowHeight, 1);
 	
 	// make sure writing to image has finished before read
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
@@ -129,7 +135,7 @@ void Renderer::initSDL()
 	screenHeight = DM.h;
 	screenWidth = DM.w;
 
-	window = SDL_CreateWindow(windowTitle, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, windowWidth, windowHeight, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN);
+	window = SDL_CreateWindow(windowTitle, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, windowWidth, windowHeight, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE);
 	glContext = SDL_GL_CreateContext(window);
 
 	SDL_SetRelativeMouseMode(SDL_TRUE);
@@ -139,14 +145,6 @@ void Renderer::initSDL()
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 	SDL_GL_SetSwapInterval(1);
-}
-
-void Renderer::resizeWindow(int width, int height)
-{
-	SDL_SetWindowSize(window, width, height);
-	int newScreenPosX = screenWidth / 2 - width / 2;
-	int newScreenPosY = screenHeight / 2 - height / 2; 
-	SDL_SetWindowPosition(window, newScreenPosX, newScreenPosY);
 }
 
 void Renderer::initPathTracer()
@@ -204,4 +202,57 @@ void Renderer::loadVBOs(std::vector<Mesh>& meshes)
 	{
 		geometryVBOs.push_back(GeometryVBO(mesh.pos, mesh.vertices));
 	}
+}
+
+void Renderer::toggleFullscreen() {
+
+	isFullScreen = !isFullScreen;
+
+	if (isFullScreen)
+	{
+		minimizedWidth = windowWidth;
+		minimizedHeight = windowHeight;
+		SDL_SetWindowSize(window, screenWidth, screenHeight);
+		SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+		windowWidth = screenWidth;
+		windowHeight = screenHeight;
+
+	}
+	else
+	{
+		SDL_SetWindowFullscreen(window, 0);
+		SDL_SetWindowSize(window, minimizedWidth, minimizedHeight);
+		windowWidth = minimizedWidth;
+		windowHeight = minimizedHeight;
+	}
+
+	updateResolution();
+}
+
+void Renderer::updateResolution()
+{
+
+	glViewport(0, 0, windowWidth, windowHeight);
+
+	glActiveTexture(GL_TEXTURE0);
+	//glBindTexture(GL_TEXTURE_2D, textureOutput);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, windowWidth, windowHeight, 0, GL_RGBA, GL_FLOAT,
+		NULL);
+	
+	camera.windowWidth = windowWidth;
+	camera.windowHeight = windowHeight;
+	render();
+
+}
+
+void Renderer::resizeWindow(int width, int height)
+{
+	//SDL_SetWindowSize(window, width, height);
+	//Center window
+	//int newScreenPosX = screenWidth / 2 - width / 2;
+	//int newScreenPosY = screenHeight / 2 - height / 2;
+	//SDL_SetWindowPosition(window, newScreenPosX, newScreenPosY);
+	windowWidth = width;
+	windowHeight = height;
+	updateResolution();
 }

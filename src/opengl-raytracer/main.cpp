@@ -20,8 +20,8 @@ int main(int argc, char** argv)
 {
 	bool quit = false;
 
-	InputHandler inputHandler;
 	Renderer renderer;
+	InputHandler inputHandler(renderer, renderer.camera);
 
 	int frameCount = 0;
 
@@ -57,7 +57,7 @@ int main(int argc, char** argv)
 		{
 			quit = true;
 		}
-		inputHandler.handleInput(renderer.camera, renderer.deltaTime);
+		inputHandler.handleInput(renderer.deltaTime);
 		renderer.updateDeltatime();
 	}
 

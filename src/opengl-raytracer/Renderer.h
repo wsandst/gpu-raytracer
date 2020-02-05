@@ -20,8 +20,11 @@
 class Renderer {
 public:
 	const char* windowTitle = "OpenGL Raytracer using Compute Shaders";
-    const int windowWidth = 1024, windowHeight = 1024;
+	int windowWidth = 1280, windowHeight = 720;
+	int minimizedWidth = 1280, minimizedHeight = 720;
 	int screenHeight, screenWidth;
+	bool isFullScreen = false;
+	bool borderlessFullScreen = false;
 
 	enum RenderType {PathTracer, Rasterizer};
 	RenderType renderType = PathTracer;
@@ -30,6 +33,8 @@ public:
     Camera camera;
 
     Renderer();
+
+	Renderer(int windowWidth, int windowHeight);
 
     ~Renderer();
 
@@ -56,6 +61,12 @@ public:
 
 	void loadVBOs(std::vector<Mesh>& meshes);
 
+	void toggleFullscreen();
+
+	void updateResolution();
+
+	void resizeWindow(int width, int height);
+
 private:
     Shader screenTextureShader, rasterizerShader;
 	ComputeShader pathTracerComputeShader;
@@ -70,6 +81,5 @@ private:
 
     void initSDL();
 
-	void resizeWindow(int width, int height);
 };
 
