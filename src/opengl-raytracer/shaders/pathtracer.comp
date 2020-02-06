@@ -56,6 +56,9 @@ struct sphere{
 #define DO_SHADOWS    1
 #define DO_LIGHT      1
 
+//FOR FUTURE WILLIAM
+//EVERYTHING EXCEPT THE FRESNEL FACTOR SEEMS TO WORK. IS THIS INTENDED OR IS THE SCHLICK APPROXIMATION OFF?
+
 //Object definitions
 #define MAX_SCENE_BOUNDS 1000.0
 #define NUM_BOXES 1
@@ -73,15 +76,15 @@ const vec3 sunLight = normalize(vec3(1.0, 1.0, 1.0));
 
 const box boxes[] = {
   /* The ground */
- box(vec3(-25.0, -0.5, -25.0), vec3(25.0, -0.4, 25.0), material(vec4(0.5, 0.5, 0.5, 1.0), 0, 1))
+ box(vec3(-25.0, -0.5, -25.0), vec3(25.0, -0.4, 25.0), material(vec4(0.4, 0.4, 0.4, 1.0), 0, 1))
  //box(vec3(-5.2, 5.5, -5.2), vec3(4.8, 5.4, 4.8), material(vec4(0.0, 0.0, 1.0, 1.0), 0.95, 0.9))
 };
 
 const sphere spheres[] = {
   /* The ground */
   /* sphere in the middle */
- sphere(vec3(-0.5, 2.0, -0.5), 1.0, material(vec4(0.0, 0.0, 0.6, 1.0), 0.8, 1.2)),
- sphere(vec3(-10.5, 5.0, -0.5), 4.0, material(vec4(0.6, 0.0, 0.0, 1.0), 0.8, 1.2))
+ sphere(vec3(-0.5, 2.0, -0.5), 1.0, material(vec4(0.1, 0.1, 0.7, 1.0), 0.8, 1.2)),
+ sphere(vec3(-10.5, 5.0, -0.5), 4.0, material(vec4(0.7, 0.1, 0.1, 1.0), 0.8, 1.2))
 };
 
 
@@ -382,7 +385,8 @@ vec4 trace(rayObj ray) {
       #if DO_FRESNEL
         if (hit.mat.reflection == 0 && hit.mat.refractiveIndex == 1 && hit.mat.color.w == 1.0)
             break;
-        float fr = fresnel(ray.dir, normal);
+        //EVERYTHING EXCEPT THE FRESNEL FACTOR SEEMS TO WORK. IS THIS INTENDED OR IS THE SCHLICK APPROXIMATION OFF?
+        float fr = 0.5; //fresnel(ray.dir, normal);
         rayObj ray1, ray2;
         ray1.ori = pos + BIAS * normal;
         ray1.dir = reflect(ray.dir, normal);

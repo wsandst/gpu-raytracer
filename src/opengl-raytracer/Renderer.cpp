@@ -132,8 +132,8 @@ void Renderer::initSDL()
 
 	SDL_DisplayMode DM;
 	SDL_GetCurrentDisplayMode(0, &DM);
-	screenHeight = DM.h;
-	screenWidth = DM.w;
+	screenResHeight = DM.h;
+	screenResWidth = DM.w;
 
 	window = SDL_CreateWindow(windowTitle, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, windowWidth, windowHeight, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE);
 	glContext = SDL_GL_CreateContext(window);
@@ -181,7 +181,7 @@ void Renderer::initSkyBox()
 	for (unsigned int i = 0; i < skyBoxTextures.size(); i++)
 	{
 		glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
-			0, GL_RGB, skyBoxTextures[i].width, skyBoxTextures[i].height, 0, GL_RGB, GL_UNSIGNED_BYTE, skyBoxTextures[i].data);
+			0, GL_SRGB, skyBoxTextures[i].width, skyBoxTextures[i].height, 0, GL_RGB, GL_UNSIGNED_BYTE, skyBoxTextures[i].data);
 	}
 
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -212,10 +212,10 @@ void Renderer::toggleFullscreen() {
 	{
 		minimizedWidth = windowWidth;
 		minimizedHeight = windowHeight;
-		SDL_SetWindowSize(window, screenWidth, screenHeight);
+		SDL_SetWindowSize(window, screenResWidth, screenResHeight);
 		SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
-		windowWidth = screenWidth;
-		windowHeight = screenHeight;
+		windowWidth = screenResWidth;
+		windowHeight = screenResHeight;
 
 	}
 	else
@@ -247,11 +247,6 @@ void Renderer::updateResolution()
 
 void Renderer::resizeWindow(int width, int height)
 {
-	//SDL_SetWindowSize(window, width, height);
-	//Center window
-	//int newScreenPosX = screenWidth / 2 - width / 2;
-	//int newScreenPosY = screenHeight / 2 - height / 2;
-	//SDL_SetWindowPosition(window, newScreenPosX, newScreenPosY);
 	windowWidth = width;
 	windowHeight = height;
 	updateResolution();

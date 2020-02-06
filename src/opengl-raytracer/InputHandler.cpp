@@ -70,6 +70,7 @@ void InputHandler::handleInput(float deltaTime)
 						sdlEvent.window.data2);
 					break;
 			}
+			break;
 		}
 	}
 }

@@ -22,7 +22,7 @@ public:
 	const char* windowTitle = "OpenGL Raytracer using Compute Shaders";
 	int windowWidth = 1280, windowHeight = 720;
 	int minimizedWidth = 1280, minimizedHeight = 720;
-	int screenHeight, screenWidth;
+	int screenResHeight, screenResWidth;
 	bool isFullScreen = false;
 	bool borderlessFullScreen = false;
 
