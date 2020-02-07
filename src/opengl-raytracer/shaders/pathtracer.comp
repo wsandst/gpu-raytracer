@@ -59,7 +59,7 @@ struct triangle{
 //Raycasting settings
 #define MAX_RAY_DEPTH 5
 #define DO_REFRACTION 0  // 0 to turn off refraction
-#define DO_REFLECTION 1  // 0 to turn off reflectivity
+#define DO_REFLECTION 0  // 0 to turn off reflectivity
 #define DO_FRESNEL    0  // 0 to turn off fresnel. fresnel will only show up if reflectivity is also on.
 #define DO_SHADOWS    1
 #define DO_LIGHT      1
@@ -67,9 +67,9 @@ struct triangle{
 
 //Object definitions
 #define MAX_SCENE_BOUNDS 1000.0
-#define NUM_BOXES 0
-#define NUM_SPHERES 1
-#define NUM_TRIANGLES 1
+#define NUM_BOXES 1
+#define NUM_SPHERES 2
+#define NUM_TRIANGLES 0
 //Constants
 #define AMBIENT_STRENGTH 0.1
 #define SPECULAR_STRENGTH 0.7
@@ -87,7 +87,7 @@ const box boxes[] = {
 const sphere spheres[] = {
   /* The ground */
   /* sphere in the middle */
- //sphere(vec3(-0.5, -2.0, -0.5), 1.0, material(vec4(0.1, 0.1, 0.7, 1.0), 0, 1, 0)),
+ sphere(vec3(1, 2.0, 4), 1.0, material(vec4(0.1, 0.1, 0.7, 1.0), 0, 1, 0)),
  sphere(vec3(-10.5, 5.0, -0.5), 4.0, material(vec4(0.7, 0.1, 0.1, 1.0), 0, 1, 0))
 };
 
@@ -209,7 +209,7 @@ vec3 sphereNormal(vec3 point, sphere s)
 
 vec3 triangleNormal(vec3 point, triangle tr)
 {
-    return normalize(cross(tr.v1 - tr.v0, tr.v2 - tr.v0));
+    return abs(normalize(cross(tr.v1 - tr.v0, tr.v2 - tr.v0)));
 }
 
 vec3 boxNormal(vec3 point, box b) //Assuming a box fixed in the XYZ plane
