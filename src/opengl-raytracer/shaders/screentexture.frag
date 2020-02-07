@@ -22,5 +22,7 @@ void main()
         color = vec4(mapped, 1.0);
     #else
         color = texture(texSampler, v_tex);
+        //Gamma correction
+        color = pow(color, vec3(1.0 / GAMMA));
     #endif
 }

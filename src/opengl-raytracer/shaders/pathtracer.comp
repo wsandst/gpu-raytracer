@@ -21,11 +21,12 @@ struct rayObj
 struct material
 {
   vec4 color;
-  float reflection;
-  float refractiveIndex;
+  float reflectivity;
+  float refractivity;
+  float transparency;
 };
 
-struct hitInfo
+struct hitObj
 {
   float t; //Distance along ray
   int objIndex; //Normal of the hit object
@@ -49,15 +50,13 @@ struct sphere{
 #define FLOAT_COMPARISON_PRECISION 0.00001
 
 //Raycasting settings
-#define MAX_RAY_DEPTH 10
-#define DO_REFRACTION 0  // 0 to turn off refraction
-#define DO_REFLECTION 1  // 0 to turn off reflection
-#define DO_FRESNEL    0  // 0 to turn off fresnel. fresnel will only show up if reflection is also on.
+#define MAX_RAY_DEPTH 5
+#define DO_REFRACTION 1  // 0 to turn off refraction
+#define DO_REFLECTION 0  // 0 to turn off reflectivity
+#define DO_FRESNEL    0  // 0 to turn off fresnel. fresnel will only show up if reflectivity is also on.
 #define DO_SHADOWS    1
 #define DO_LIGHT      1
 
-//FOR FUTURE WILLIAM
-//EVERYTHING EXCEPT THE FRESNEL FACTOR SEEMS TO WORK. IS THIS INTENDED OR IS THE SCHLICK APPROXIMATION OFF?
 
 //Object definitions
 #define MAX_SCENE_BOUNDS 1000.0
@@ -76,15 +75,15 @@ const vec3 sunLight = normalize(vec3(1.0, 1.0, 1.0));
 
 const box boxes[] = {
   /* The ground */
- box(vec3(-25.0, -0.5, -25.0), vec3(25.0, -0.4, 25.0), material(vec4(0.4, 0.4, 0.4, 1.0), 0, 1))
+ box(vec3(-25.0, -0.5, -25.0), vec3(25.0, -0.4, 25.0), material(vec4(0.3, 0.3, 0.3, 1.0), 0, 1, 0))
  //box(vec3(-5.2, 5.5, -5.2), vec3(4.8, 5.4, 4.8), material(vec4(0.0, 0.0, 1.0, 1.0), 0.95, 0.9))
 };
 
 const sphere spheres[] = {
   /* The ground */
   /* sphere in the middle */
- sphere(vec3(-0.5, 2.0, -0.5), 1.0, material(vec4(0.1, 0.1, 0.7, 1.0), 0.8, 1.2)),
- sphere(vec3(-10.5, 5.0, -0.5), 4.0, material(vec4(0.7, 0.1, 0.1, 1.0), 0.8, 1.2))
+ sphere(vec3(-0.5, 2.0, -0.5), 1.0, material(vec4(0.1, 0.1, 0.7, 1.0), 0.01, 1.2, 0.1)),
+ sphere(vec3(-10.5, 5.0, -0.5), 4.0, material(vec4(0.7, 0.1, 0.1, 1.0), 0.99, 1.2, 0.8))
 };
 
 
@@ -209,7 +208,7 @@ float traceShadow(rayObj ray) //Check whether ray intersects with light source
   return 1;
 }
 
-float fresnel(vec3 dir, vec3 normal)
+float fresnel(vec3 dir, vec3 normal) //Schlick approximation
 {
   return FRESNEL_SCALE * pow(1.0 + dot(dir, normal), FRESNEL_POWER);
 
@@ -246,15 +245,13 @@ vec4 calculateLight(vec3 normal, vec3 dir, vec3 pos)
 
 vec4 secondaryTrace(rayObj ray) {
   int depth = 0;
-  hitInfo skyHit = hitInfo(MAX_SCENE_BOUNDS, 0, 0, material(vec4(0.0, 0.6, 0.8, 1.0), 0, 1));
-  //hitInfo skyHit = hitInfo(MAX_SCENE_BOUNDS, 0, 0, material(vec4(0.0, 0.0, 0.0, 1.0), 0));
 
   vec4 color;
 
   while (depth < MAX_RAY_DEPTH)
   {
     ray.dir = normalize(ray.dir);
-    hitInfo hit, previousHit;
+    hitObj hit, previousHit;
     hit.t = MAX_SCENE_BOUNDS;
     float t = 0;
     bool hasHit = false;
@@ -296,21 +293,21 @@ vec4 secondaryTrace(rayObj ray) {
       if (depth == 0)
         color = hit.mat.color * calculateLight(normal, ray.dir, pos);
       else
-        color = mix(color, hit.mat.color * calculateLight(normal, ray.dir, pos), MIXING_FACTOR);
+        color = mix(color, hit.mat.color * calculateLight(normal, ray.dir, pos), hit.mat.reflectivity);
       #if DO_REFLECTION
-        if (hit.mat.reflection == 0)
+        if (hit.mat.reflectivity == 0)
           break;
         ray.ori = pos + BIAS * normal;
         ray.dir = reflect(ray.dir, normal);
       #endif
 
       #if DO_REFRACTION
-        if (hit.mat.refractiveIndex == 1 && hit.mat.color.w == 1.0)
+        if (hit.mat.refractivity == 1 && hit.mat.color.w == 1.0)
           break;
-        if (hit.mat.reflection != 0)
+        if (hit.mat.reflectivity != 0)
           continue;
         ray.ori = pos - BIAS * normal;
-        ray.dir = refract(ray.dir, normal, 1.0 / hit.mat.refractiveIndex);
+        ray.dir = refract(ray.dir, normal, 1.0 / hit.mat.refractivity);
       #endif
 
       depth = depth + 1;
@@ -329,23 +326,13 @@ vec4 secondaryTrace(rayObj ray) {
   return color; //Return the color value of this pixel
 }
 
-vec4 trace(rayObj ray) {
-  int depth = 0;
-  hitInfo skyHit = hitInfo(MAX_SCENE_BOUNDS, 0, 0, material(vec4(0.0, 0.6, 0.8, 1.0), 0, 1));
-  //hitInfo skyHit = hitInfo(MAX_SCENE_BOUNDS, 0, 0, material(vec4(0.0, 0.0, 0.0, 1.0), 0));
-
-  vec4 color;
-
-  while (depth < MAX_RAY_DEPTH)
-  {
-    ray.dir = normalize(ray.dir);
-    hitInfo hit, previousHit;
+bool rayHit(rayObj ray, out hitObj hit)
+{
     hit.t = MAX_SCENE_BOUNDS;
-    float t = 0;
-    bool hasHit = false;
     bool hasHitTemp = false;
-
-    //Check if the ray intersects with box objects
+    bool hasHit = false;
+    float t = 0;
+      //Check if the ray intersects with box objects
     for (int i = 0; i < NUM_BOXES; i++) {
       hasHitTemp = intersectBox(ray, boxes[i], t); //Check if the ray hits the box
       if (hasHitTemp && t > 0 && t < hit.t) { //Is the hit closer to the camera than the previous hit?
@@ -369,62 +356,65 @@ vec4 trace(rayObj ray) {
         hasHit = true;
       }
     }
+    return hasHit;
+}
 
-    if (hasHit) //If object is hit, calculate new ray
+vec4 trace(rayObj ray) {
+  int depth = 0;
+  //hitObj skyHit = hitObj(MAX_SCENE_BOUNDS, 0, 0, material(vec4(0.0, 0.6, 0.8, 1.0), 0, 1));
+
+  vec4 color = vec4(0.0, 0.0, 0.0, 1.0);
+
+  float rprod = 1.0;
+  float tprod = 1.0;
+
+  while (depth < MAX_RAY_DEPTH)
+  {
+    ray.dir = normalize(ray.dir);
+    hitObj hit;
+
+    if (rayHit(ray, hit)) //Is an object hit by the ray?
     {
+      //Calculate normals
       vec3 pos = getRayPos(ray, hit.t);
       vec3 normal;
+
       if (hit.objType == 1) //Box
         normal = boxNormal(pos, boxes[hit.objIndex]);
-      else if (hit.objType == 2)
+      else if (hit.objType == 2) //Sphere
         normal = sphereNormal(pos, spheres[hit.objIndex]);
-      if (depth == 0)
-        color = hit.mat.color * calculateLight(normal, ray.dir, pos);
-      else
-        color = mix(color, hit.mat.color * calculateLight(normal, ray.dir, pos), MIXING_FACTOR);
-      #if DO_FRESNEL
-        if (hit.mat.reflection == 0 && hit.mat.refractiveIndex == 1 && hit.mat.color.w == 1.0)
-            break;
-        //EVERYTHING EXCEPT THE FRESNEL FACTOR SEEMS TO WORK. IS THIS INTENDED OR IS THE SCHLICK APPROXIMATION OFF?
-        float fr = 0.5; //fresnel(ray.dir, normal);
-        rayObj ray1, ray2;
-        ray1.ori = pos + BIAS * normal;
-        ray1.dir = reflect(ray.dir, normal);
 
-        ray2.ori = pos - BIAS * normal;
-        ray2.dir = refract(ray.dir, normal, 1.0 / hit.mat.refractiveIndex);
+      #if DO_REFLECTION //Reflection
+        color = color + hit.mat.color * calculateLight(normal, ray.dir, pos) * rprod * (1-hit.mat.reflectivity);
+        if (hit.mat.reflectivity == 0) //No reflectivity, no need to bounce anymore
+          break;
 
-        vec4 combinedColor = secondaryTrace(ray1) * fr + secondaryTrace(ray2) * (1 - fr);
-        color = mix(color, combinedColor, MIXING_FACTOR);
+        ray.ori = pos + BIAS * normal;
+        ray.dir = reflect(ray.dir, normal);
+        rprod = rprod * hit.mat.reflectivity;
+        
+      #elif DO_REFRACTION
+        color = color + hit.mat.color * calculateLight(normal, ray.dir, pos) * tprod * (1-hit.mat.transparency);
+        if (hit.mat.transparency == 0) //No reflectivity, no need to bounce anymore
+          break;
+
+        ray.ori = pos - BIAS * normal;
+        ray.dir = refract(ray.dir, normal, 1.0 / hit.mat.refractivity);
+        tprod = tprod * hit.mat.transparency;
       #else
-        #if DO_REFLECTION
-          if (hit.mat.reflection == 0)
-            break;
-          ray.ori = pos + BIAS * normal;
-          ray.dir = reflect(ray.dir, normal);
-        #endif
-
-        #if DO_REFRACTION
-          if (hit.mat.refractiveIndex == 1 && hit.mat.color.w == 1.0)
-            break;
-          ray.ori = pos - BIAS * normal;
-          ray.dir = refract(ray.dir, normal, 1.0 / hit.mat.refractiveIndex);
-        #endif
+        color = color + hit.mat.color * calculateLight(normal, ray.dir, pos);
+        break; //No reflections, so fine to stop
       #endif
 
       depth = depth + 1;
-      previousHit = hit;
     }
     else
     {
-      if (depth == 0)
-        color = texture(skybox, ray.dir);
-      else
-        color = mix(color, texture(skybox,ray.dir), MIXING_FACTOR);
-      break;
+        color = color + texture(skybox,ray.dir) * rprod * tprod; //Get skybox color if there's no hit, which means it will hit the sky
+        break;
     }
   }
-  
+
   return color; //Return the color value of this pixel
 }
 
