@@ -15,10 +15,10 @@ set(USING_COPY TRUE)
 # Project setup
 cmake_minimum_required(VERSION 3.17)
 
-project(opengl-raytracer
+project(gpu-pathtracer
     LANGUAGES C CXX
     VERSION 1.0.0
-    DESCRIPTION "OpenGL Compute Shader Pathtracer"
+    DESCRIPTION "GPU Compute Shader Pathtracer"
 )
 
 # Add cmake folder for custom find_package() files

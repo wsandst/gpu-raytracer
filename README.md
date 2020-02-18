@@ -1,17 +1,14 @@
-# C++ OpenGL Pathtracer
-OpenGL Real-time Pathtracer using Compute Shaders
-  
-# Install instructions  
-Follow the instructions at https://github.com/williamsandst/opengl-boilerplate (but remember the repo has a different name!)  
-  
-# Todo 
-Implement objects as a texture, which allows dynamic object creation instead of the current hardcoded objects in the shader
+# Real-time GPU Pathtracer using OpenGL Compute Shaders
+Implemented using OpenGL Compute Shaders and C++.  
+   
+## Todo 
+Implement objects as a texture, which allows dynamic object creation instead of the current hardcoded objects in the shader  
 Implement Hierarchical Bounding Volumes to speed up intersection testing  
   
 Future ideas:
 Create a more physically based pathtracer with multiple samples, which would allow for more glossy items and soft shadows. It would however negatively impact other real-time aspects of the Pathtracer.  
 
-# Resources on the subject  
+## Resources on the subject  
 https://www.scratchapixel.com/ - Most comprehensive source online regarding raytracing and other rendering topics. Good explanations and includes code examples.  
   
 http://antongerdelan.net/opengl/compute.html - Great introduction to Compute Shaders in relation to raytracing. 
@@ -26,3 +23,9 @@ http://web.archive.org/web/20070628033341/http://www.devmaster.net/articles/rayt
 http://raytracerchallenge.com/ - Another interesting website with ray tracing tutorials based on Tests, can be a bit confusing at times though.  
 
 https://www.youtube.com/user/icytower103/videos - Channel showcasing a hybrid ray tracer which runs in real time with soft shadows and such, good info in comments.  
+
+## Build instructions  
+1. Install the required dependencies: [SDL2 link](https://www.libsdl.org/download-2.0.php), [GLEW link](http://glew.sourceforge.net/)  
+2. Clone the repo and the submodules ("git submodule update --init --recursive")
+3. Run cmake
+4. You can now compile/modify the project  
