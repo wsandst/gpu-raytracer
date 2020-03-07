@@ -13,7 +13,7 @@ set(USING_SYMLINKS TRUE)
 set(USING_COPY TRUE)
 
 # Project setup
-cmake_minimum_required(VERSION 3.17)
+cmake_minimum_required(VERSION 3.10)
 
 project(gpu-pathtracer
     LANGUAGES C CXX
