@@ -194,6 +194,15 @@ void Renderer::initSkyBox()
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 }
 
+void Renderer::requestShaderReload()
+{
+	switch (renderType)
+	{
+	case PathTracer: pathTracerComputeShader.reload(); break;
+	case Rasterizer: rasterizerShader.reload(); break;
+	}
+}
+
 void Renderer::close()
 {
 	SDL_Quit();

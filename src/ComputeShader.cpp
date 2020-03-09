@@ -7,6 +7,16 @@ ComputeShader::ComputeShader()
 
 ComputeShader::ComputeShader(const char* path)
 {
+	this->path = path;
+	create();
+}
+
+ComputeShader::~ComputeShader()
+{
+}
+
+void ComputeShader::create()
+{
 	std::string shaderCode = FileHandler::loadStrFile(path);
 
 	GLchar const* shaderChars = shaderCode.c_str();
@@ -26,8 +36,10 @@ ComputeShader::ComputeShader(const char* path)
 	glDeleteShader(computeShader);
 }
 
-ComputeShader::~ComputeShader()
+void ComputeShader::reload()
 {
+	glDeleteProgram(ID);
+	create();
 }
 
 void ComputeShader::use()

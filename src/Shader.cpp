@@ -7,6 +7,17 @@ Shader::Shader()
 
 Shader::Shader(const char * vertexPath, const char * fragmentPath)
 {
+	this->vertexPath = vertexPath;
+	this->fragmentPath = fragmentPath;
+	create();
+}
+
+Shader::~Shader()
+{
+}
+
+void Shader::create()
+{
 	std::string vertexCode = FileHandler::loadStrFile(vertexPath);
 	std::string fragmentCode = FileHandler::loadStrFile(fragmentPath);
 
@@ -36,8 +47,10 @@ Shader::Shader(const char * vertexPath, const char * fragmentPath)
 	glDeleteShader(fragmentShader);
 }
 
-Shader::~Shader()
+void Shader::reload()
 {
+	glDeleteProgram(ID);
+	create();
 }
 
 void Shader::use()
@@ -72,8 +85,7 @@ void Shader::setVec2(const std::string &name, float x, float y) const
 
 void Shader::setVec3(const std::string &name, const glm::vec3 &value) const
 {
-	int id = glGetUniformLocation(ID, name.c_str());
-	glUniform3fv(id, 1, &value[0]);
+	glUniform3fv(glGetUniformLocation(ID, name.c_str()), 1, &value[0]);
 }
 
 void Shader::setVec3(const std::string &name, float x, float y, float z) const

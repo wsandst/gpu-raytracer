@@ -67,6 +67,8 @@ public:
 
 	void resizeWindow(int width, int height);
 
+	void requestShaderReload();
+
 private:
     Shader screenTextureShader, rasterizerShader;
 	ComputeShader pathTracerComputeShader;

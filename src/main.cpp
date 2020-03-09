@@ -10,7 +10,7 @@
 
 #include "Renderer.h"
 #include "InputHandler.h"
-#include  <iostream>
+#include <iostream>
 #include <ctime>
 
 const int mWidth = 1024;

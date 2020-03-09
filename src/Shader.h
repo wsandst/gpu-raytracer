@@ -20,11 +20,18 @@ class Shader
 public:
 	//Shader ID
 	unsigned int ID;
+	const char* vertexPath;
+	const char* fragmentPath;
 
 	//Constructor loads shader files
 	Shader();
 	Shader(const char* vertexPath, const char* fragmentPath);
 	~Shader();
+
+	//Create the shader
+	void create();
+	//Hot reloading support
+	void reload();
 
 	//Use the shader
 	void use();

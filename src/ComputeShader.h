@@ -18,11 +18,17 @@ class ComputeShader
 public:
 	//Shader ID
 	unsigned int ID;
+	const char* path;
 
 	//Constructor loads shader files
 	ComputeShader();
 	ComputeShader(const char* path);
 	~ComputeShader();
+
+	//Create the shader
+	void create();
+	//Hot reloading support
+	void reload();
 
 	//Use the shader
 	void use();

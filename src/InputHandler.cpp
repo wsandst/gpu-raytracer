@@ -7,42 +7,50 @@ void InputHandler::handleInput(float deltaTime)
 	camera.cameraStep = 0.05f * deltaTime;
 	float xOffset, yOffset;
 
-	while (SDL_PollEvent(&sdlEvent) != 0 && sdlEvent.key.repeat == 0) {
+	//Check for inputs
+	while (SDL_PollEvent(&sdlEvent)) {
+		if (sdlEvent.key.repeat == 0) //Don't listen for repeat events here
+		{
 		switch (sdlEvent.type) {
-		case SDL_KEYDOWN:
+		case SDL_KEYDOWN: //Key down event
 			switch (sdlEvent.key.keysym.sym) {
-			case SDLK_w:
+			case SDLK_w: //Move forward
 				camera.keyForward = true;
 				break;
-			case SDLK_s:
+			case SDLK_s: //Move back
 				camera.keyBackward = true;
 				break;
-			case SDLK_a:
+			case SDLK_a: //Move left
 				camera.keyLeft = true;
 				break;
-			case SDLK_d:
+			case SDLK_d: //Move right
 				camera.keyRight = true;
 				break;
-			case SDLK_SPACE:
+			case SDLK_SPACE: //Move up
 				camera.keyUp = true;
 				break;
-			case SDLK_LCTRL:
+			case SDLK_LCTRL: //Move down
 				camera.keyDown = true;
 				break;
 
-			case SDLK_z:
+			case SDLK_z: //Change max speed by 2x
 				camera.changeMaxVelocity(2);
 				std::cout << "Max speed: " << camera.maxVelocity << "\n";
 				break;
-			case SDLK_x:
+			case SDLK_x: //Change max speed by 0.5x
 				camera.changeMaxVelocity(0.5);
 				std::cout << "Max speed: " << camera.maxVelocity << "\n";
 				break;
-			case SDLK_F9:
+			case SDLK_r: //Hot reload shaders
+				std::cout << "Reloading Shaders" << "\n";
+				renderer.requestShaderReload();
+				break;
+			case SDLK_F9: //Print camera position
 				std::cout << "Camera pos: x: " << camera.getPosition().x << " y: " << camera.getPosition().y << " z: " << camera.getPosition().z << "\n";
 				break;
 
-			case SDLK_F11:
+			case SDLK_F11: //Toggle fullscreen
+				std::cout << "Fullscreen toggled" << "\n";
 				renderer.toggleFullscreen();
 				break;
 
@@ -51,16 +59,17 @@ void InputHandler::handleInput(float deltaTime)
 				if (windowContext) {
 					SDL_ShowCursor(0);
 					SDL_SetRelativeMouseMode(SDL_TRUE);
+					int relativeX, relativeY; //Skip the next relative mouse event, as the mouse has moved around during unfocus
+					SDL_GetRelativeMouseState(&relativeX, &relativeY);
 				}
 				else {
 					SDL_ShowCursor(1);
 					SDL_SetRelativeMouseMode(SDL_FALSE);
 				}
 				break;
-			case SDLK_c:
+			case SDLK_c: //Exiting program
 				exit = true;
 				break;
-
 			}
 			break;
 		case SDL_KEYUP:
@@ -84,8 +93,12 @@ void InputHandler::handleInput(float deltaTime)
 				camera.keyDown = false;
 				break;
 			}
+		
+		}
+		}
+		switch (sdlEvent.type) {
 		case SDL_MOUSEMOTION:
-			if (windowContext)
+			if (windowContext) //Mouse only moves camera when the window is in focus, ie the mouse is invisible
 			{
 				int relativeX, relativeY;
 				SDL_GetRelativeMouseState(&relativeX, &relativeY);
@@ -101,7 +114,12 @@ void InputHandler::handleInput(float deltaTime)
 					sdlEvent.window.data1,
 					sdlEvent.window.data2);
 				break;
+			case SDL_WINDOWEVENT_CLOSE: //Exiting program
+				std::cout << "Exiting program" << "\n";
+				exit = true;
+				break;
 			}
+			break;
 		}
 	}
 
@@ -112,7 +130,6 @@ InputHandler::InputHandler(Renderer& _renderer, Camera& _camera) : camera(_camer
 {
 	SDL_SetRelativeMouseMode(SDL_TRUE);
 }
-
 
 InputHandler::~InputHandler()
 {
