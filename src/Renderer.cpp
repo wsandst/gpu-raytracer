@@ -1,10 +1,11 @@
 #include "Renderer.h"
 
-Renderer::Renderer()
+Renderer::Renderer(std::vector<shaderObject>& _objects) : 
+objects(_objects)
 {
 }
 
-Renderer::Renderer(int windowWidth, int windowHeight)
+Renderer::Renderer(std::vector<shaderObject>& _objects, int windowWidth, int windowHeight) : objects(_objects)
 {
 	this->windowWidth = windowWidth;
 	this->windowHeight = windowHeight;
@@ -171,6 +172,11 @@ void Renderer::initPathTracer()
 	glBindImageTexture(0, textureOutput, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
 
 	initSkyBox();
+
+	//Load objects
+	pathTracerComputeShader.use();
+	pathTracerComputeShader.setInt("objectCount", objects.size());
+	pathTracerComputeShader.setObjects("objects", objects);
 }
 
 void Renderer::initSkyBox()
