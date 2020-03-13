@@ -22,9 +22,10 @@ int main(int argc, char** argv)
 {
 	//Create screen objects
 	Scene scene;
-	scene.addBox(glm::vec3 {-25.0, -1.5, -25.0}, glm::vec3 {25.0, -1.4, 25.0}, glm::vec4 {0.3, 0.3, 0.3, 1.0});
+	scene.addBox(glm::vec3 {-25.0, -1.5, -25.0}, glm::vec3 {50.0, 0.1, 50.0}, glm::vec4 {0.3, 0.3, 0.3, 1.0});
 	scene.addSphere(glm::vec3 {10.0, 2.0, 3.0}, 1, glm::vec4 {0.1, 0.1, 0.7, 1.0}, 0.7);
-	scene.addMesh("head.obj", glm::vec3 {10.0, 2.0, 3.0}, glm::vec4 {1, 0.1, 0.1, 1.0}, 0.7);
+	scene.addMesh("cube.obj", glm::vec3 {7.0, 2.0, 10.0}, glm::vec4 {1, 0.1, 0.1, 1.0}, 2, 0.7, 1.2);
+	scene.addMesh("head.obj", glm::vec3 {3.0, 2.0, 10.0}, glm::vec4 {1, 0.1, 0.1, 1.0});
 
 	//Renderer setup
 	bool quit = false;

@@ -159,9 +159,9 @@ public:
 				calcSurfaceNormal(n[0], v[0], v[1], v[2]);
 				for (size_t i = 0; i < 3; i++)
 				{
-					tempNormals[3 * idx0.normal_index + i] += n[0][i];
-					tempNormals[3 * idx1.normal_index + i] += n[0][i];
-					tempNormals[3 * idx2.normal_index + i] += n[0][i];
+					tempNormals[3 * idx0.vertex_index + i] += n[0][i];
+					tempNormals[3 * idx1.vertex_index + i] += n[0][i];
+					tempNormals[3 * idx2.vertex_index + i] += n[0][i];
 				}
 				} //Insert the relevant data in the output vector/vectors
 				for (size_t i = 0; i < 3; i++)
@@ -203,15 +203,18 @@ public:
 					n[1][k] = tempNormals[3 * f1 + k];
 					n[2][k] = tempNormals[3 * f2 + k];
 				}
+				float x = 0, y = 0, z = 0;
 				for (size_t i = 0; i < 3; i++)
 				{
-
-					normalize(n[i][0], n[i][1], n[i][2]);
-					normals.insert(normals.end(), {-n[i][0], -n[i][1], -n[i][2], 0});
+					x += n[i][0], y += n[i][1], z += n[i][2];
+					//normalize(n[i][0], n[i][1], n[i][2]);
+					normals.insert(normals.end(), {n[i][0], n[i][1], n[i][2], 0});
 				}
+				std::cout << x << " " << y << " " << z << "\n";
 			}
 		}
 		}
+		
 		std::cout << "Loaded texture: " << filename << " (" << vertices.size() / (4 * 3) << " polygons)" << std::endl;
 	}
 

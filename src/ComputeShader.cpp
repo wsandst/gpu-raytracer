@@ -120,10 +120,10 @@ void ComputeShader::setObject(std::string& name, const shaderObject obj)
 	glUniform1i(glGetUniformLocation(ID, (name + ".vStart").c_str()), obj.vStart);
 	glUniform1i(glGetUniformLocation(ID,(name + ".vEnd").c_str()), obj.vEnd);
 
-	glUniform1f(glGetUniformLocation(ID, (name + ".radius").c_str()), obj.radius);
+	glUniform1f(glGetUniformLocation(ID, (name + ".scale").c_str()), obj.scale);
 
-	glUniform3fv(glGetUniformLocation(ID, (name + ".min").c_str()), 1, &obj.min[0]);
-	glUniform3fv(glGetUniformLocation(ID, (name + ".max").c_str()), 1, &obj.max[0]);
+	glUniform3fv(glGetUniformLocation(ID, (name + ".bMax").c_str()), 1, &obj.bMax[0]);
+	glUniform3fv(glGetUniformLocation(ID, (name + ".bMin").c_str()), 1, &obj.bMin[0]);
 }
 
 void ComputeShader::setObjects(const std::string &name, std::vector<shaderObject>& objects)
