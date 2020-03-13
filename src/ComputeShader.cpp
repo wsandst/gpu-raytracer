@@ -133,7 +133,6 @@ void ComputeShader::setObjects(const std::string &name, std::vector<shaderObject
 		std::ostringstream os;
         os << name << "[" << i << "]";
 		std::string newName = os.str();
-		std::cout << newName << "\n";
 		setObject(newName, objects[i]);
 	}
 	

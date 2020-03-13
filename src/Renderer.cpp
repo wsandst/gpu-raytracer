@@ -1,11 +1,12 @@
 #include "Renderer.h"
 
-Renderer::Renderer(std::vector<shaderObject>& _objects) : 
-objects(_objects)
+Renderer::Renderer(std::vector<shaderObject>& _objects, std::vector<float>& _objVertices, std::vector<float>& _objNormals) : 
+objects(_objects), objVertices(_objVertices), objNormals(_objNormals)
 {
 }
 
-Renderer::Renderer(std::vector<shaderObject>& _objects, int windowWidth, int windowHeight) : objects(_objects)
+Renderer::Renderer(std::vector<shaderObject>& _objects, std::vector<float>& _objVertices, std::vector<float>& _objNormals, int windowWidth, int windowHeight) : 
+objects(_objects), objVertices(_objVertices), objNormals(_objNormals)
 {
 	this->windowWidth = windowWidth;
 	this->windowHeight = windowHeight;
@@ -61,8 +62,12 @@ void Renderer::drawPathTracer()
 
 	int framebufferTexLocation = glGetUniformLocation(pathTracerComputeShader.ID, "framebuffer");
 	int skyBoxTexLocation = glGetUniformLocation(pathTracerComputeShader.ID, "skybox");
+	int vertexBufferLocation = glGetUniformLocation(pathTracerComputeShader.ID, "objectVertexBuffer");
+	int normalBufferLocation = glGetUniformLocation(pathTracerComputeShader.ID, "objectNormalBuffer");
 	glUniform1i(framebufferTexLocation, 0);
 	glUniform1i(skyBoxTexLocation, 1);
+	glUniform1i(vertexBufferLocation, 2);
+	glUniform1i(normalBufferLocation, 3);
 	//Set corner ray uniforms to give the program the view
 	pathTracerComputeShader.setVec3("eye", camera.getPosition());
 	pathTracerComputeShader.setVec3("ray00", camera.ray00);
@@ -70,11 +75,17 @@ void Renderer::drawPathTracer()
 	pathTracerComputeShader.setVec3("ray01", camera.ray01);
 	pathTracerComputeShader.setVec3("ray11", camera.ray11);
 
-	glActiveTexture(GL_TEXTURE0 + 0);
+	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, textureOutput);
 
-	glActiveTexture(GL_TEXTURE0 + 1);
+	glActiveTexture(GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, skyboxTex);
+
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_BUFFER, vertexBufferTex);
+
+	glActiveTexture(GL_TEXTURE3);
+	glBindTexture(GL_TEXTURE_BUFFER, normalBufferTex);
 
 	 // launch compute shaders!
 	glDispatchCompute((GLuint)windowWidth, (GLuint)windowHeight, 1);
@@ -95,7 +106,6 @@ void Renderer::init()
 
 	initSDL();
 	initOpenGL();
-
 	switch (renderType)
 	{
 	case PathTracer: initPathTracer(); break;
@@ -173,9 +183,28 @@ void Renderer::initPathTracer()
 
 	initSkyBox();
 
+	//Object vertices samplerBuffer
+	glGenBuffers(1, &vertexBuffer);
+	glBindBuffer(GL_TEXTURE_BUFFER, vertexBuffer);
+	glBufferData(GL_TEXTURE_BUFFER, sizeof(float)*objVertices.size(), &objVertices[0], GL_STATIC_DRAW);
+
+	glGenTextures(1, &vertexBufferTex);
+	glBindTexture(GL_TEXTURE_BUFFER, vertexBufferTex);
+	glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA32F_ARB, vertexBuffer);
+
+	//Object normals samplerBuffer
+	glGenBuffers(1, &normalBuffer);
+	glBindBuffer(GL_TEXTURE_BUFFER, normalBuffer);
+	glBufferData(GL_TEXTURE_BUFFER, sizeof(float)*objNormals.size(), &objNormals[0], GL_STATIC_DRAW);
+
+	glGenTextures(1, &normalBufferTex);
+	glBindTexture(GL_TEXTURE_BUFFER, normalBufferTex);
+	glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA32F_ARB, normalBuffer);
+
+
+
 	//Load objects
 	pathTracerComputeShader.use();
-	pathTracerComputeShader.setInt("objectCount", objects.size());
 	pathTracerComputeShader.setObjects("objects", objects);
 }
 

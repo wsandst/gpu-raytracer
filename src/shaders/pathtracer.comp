@@ -5,10 +5,9 @@ layout(binding = 0, rgba32f) uniform writeonly image2D framebuffer;
 
 //Object inputs
 //layout(std430, binding = 1) buffer ObjectsBuffer { Object objects[]; };
-uniform samplerBuffer objectVertexBuffer;
 
 //Skybox
-uniform samplerCube skybox;
+layout(binding = 1) uniform samplerCube skybox;
 
 //Camera uniforms
 
@@ -52,18 +51,21 @@ struct light{
 #define FLOAT_COMPARISON_PRECISION 0.00001
 
 //Raycasting settings
-#define MAX_RAY_DEPTH 5
-#define DO_REFRACTION 0  // 0 to turn off refraction
-#define DO_REFLECTION 1  // 0 to turn off reflectivity
+#define MAX_RAY_DEPTH 10
+#define DO_REFRACTION 1  // 0 to turn off refraction
+#define DO_REFLECTION 0  // 0 to turn off reflectivity
 #define DO_FRESNEL    0  // 0 to turn off fresnel. fresnel will only show up if reflectivity is also on.
 #define DO_SHADOWS    1
 #define DO_LIGHT      1
+#define DOUBLE_SIDED  1  // Do rays hit objects entering from the "inside"?
 
 
 //Object definitions
 #define MAX_SCENE_BOUNDS 1000.0
-#define NUM_OBJECTS 37
+#define NUM_OBJECTS 4
 uniform object objects[NUM_OBJECTS];
+layout(binding = 2) uniform samplerBuffer objectVertexBuffer;
+layout(binding = 3) uniform samplerBuffer objectNormalBuffer;
 //Constants
 #define AMBIENT_STRENGTH 0.1
 #define SPECULAR_STRENGTH 0.7
@@ -79,27 +81,14 @@ struct rayObj
   vec3 ori;
 };
 
-struct hitObj
+struct hitRecord
 {
   float t; //Distance along ray
-  int objIndex; //Normal of the hit object
   int objType; //Box 1, Sphere 2
   material mat;
+  vec3 normal;
 };
 
-
-//Various functions relating to the propagation of a ray
-float rand(ivec2 v)
-{
-  int seed = v.x + v.y * 57 + 123 * 241;
-  seed= (seed<< 13) ^ seed;
-  return (( 0.5 - ( (seed * (seed * seed * 15731 + 789221) + 1376312589) & 2147483647) / 1073741824.0f) + 1.0f) / 2.0f;
-}
-
-vec3 perturb(vec3 v, float amount)
-{
-  return v + vec3(rand(ivec2(gl_GlobalInvocationID.xy))) * amount;
-}
 
 bool fuzzy_equals(float a, float b)
 {
@@ -128,22 +117,65 @@ vec3 getRayPos(rayObj ray, float t)
 //Intersect functions. Determines if a ray hits a certain object.
 //t is the location of the hit. Can get it as a point through the function: ray.ori + ray.dir * t
 
-bool intersectBox(rayObj ray, const object b, out float t) {
+vec3 sphereNormal(vec3 dir, vec3 point, vec3 spherePos)
+{
+  #if DOUBLE_SIDED
+    vec3 n = normalize(point - spherePos);
+    return n * (dot(dir, n) > 0 ? -1 : 1); //Negate normal if backside
+  #else
+    return normalize(point - spherePos);
+  #endif
+}
+
+vec3 boxNormal(vec3 dir, vec3 point, vec3 min, vec3 max) //Assuming a box fixed in the XYZ plane
+{
+  vec3 n;
+  if (fuzzy_equals(point.x, min.x)) n = vec3(-1, 0, 0);
+  else if (fuzzy_equals(point.x, max.x)) n = vec3(1, 0, 0);
+  else if (fuzzy_equals(point.y, min.y)) n = vec3(0, -1, 0);
+  else if (fuzzy_equals(point.y, max.y)) n = vec3(0, 1, 0);
+  else if (fuzzy_equals(point.z, min.z)) n = vec3(0, 0, -1);
+  else if (fuzzy_equals(point.z, max.z)) n = vec3(0, 0, 1);
+  #if DOUBLE_SIDED
+    return n * (dot(dir, n) <= 0 ? 1 : -1); //Negate normal if backside
+  #else
+    return n;
+  #endif
+}
+
+vec3 triangleNormal(vec3 dir, int i, float u, float v) //Barycentric coordinates
+{
+  //Goroud shading
+  vec3 n0 = texelFetch(objectNormalBuffer, i).xyz;
+  vec3 n1 = texelFetch(objectNormalBuffer, i+1).xyz;
+  vec3 n2 = texelFetch(objectNormalBuffer, i+2).xyz;
+  int sign = dot(dir, n0+n1+n2) <= 0 ? 1 : -1;
+  return normalize(u * n0 + v * n2 + (1 - u - v) * n1) * sign; //Works for precomputed normals
+}
+
+bool intersectBox(rayObj ray, const object b, out hitRecord hit) {
   vec3 tMin = (b.min - ray.ori) / ray.dir;
   vec3 tMax = (b.max - ray.ori) / ray.dir;
   vec3 t1 = min(tMin, tMax);
   vec3 t2 = max(tMin, tMax);
   float tNear = max(max(t1.x, t1.y), t1.z);
   float tFar = min(min(t2.x, t2.y), t2.z);
-  if (tNear > 0.0 && tNear < tFar) //Ray hit the box
+  if (tNear < tFar) //Ray hit the box
   {
-    t = tNear;
+    #if DOUBLE_SIDED
+      hit.t = (tNear < 0) ? tFar : tNear;
+    #else
+      hit.t = tNear;
+    #endif
+    
+    hit.mat = b.mat;
+    hit.normal = boxNormal(ray.dir, hit.t*ray.dir + ray.ori, b.min, b.max);
     return true;
   }
   return false;
 }
 
-bool intersectSphere(rayObj ray, const object s, out float t)
+bool intersectSphere(rayObj ray, const object s, out hitRecord hit)
 {
     vec3 oc = ray.ori - s.pos;
     float a = dot(ray.dir, ray.dir);
@@ -156,19 +188,25 @@ bool intersectSphere(rayObj ray, const object s, out float t)
         float t1 = (-b - sqrt(b * b - a * c)) / a;
         float t2 = (-b + sqrt(b * b - a * c)) / a;
 
-        t = min(t1, t2); //Return the closest hit
-
+        #if DOUBLE_SIDED
+          hit.t = (t2 > 0 && t1 > 0) ? min(t1, t2) : max(t1, t2);
+        #else
+          hit.t = min(t1, t2);
+        #endif
+        hit.mat = s.mat;
+        hit.objType = TYPE_SPHERE;
+        hit.normal = sphereNormal(ray.dir, hit.t * ray.dir + ray.ori, s.pos);
         return true;
     }
 
     return false;
 }
 
-bool intersectTriangle(rayObj ray, vec3 v0, vec3 v1, vec3 v2, out float t)
+bool intersectTriangle(rayObj ray, vec3 v1, vec3 v0, vec3 v2, out hitRecord hit, out float u, out float v)
 {
     const float EPSILON = 0.0000001;
     vec3 edge1, edge2, h, s, q;
-    float a,f,u,v;
+    float a,f,t;
     edge1 = v1 - v0;
     edge2 = v2 - v0;
     h = cross(ray.dir, edge2);
@@ -188,58 +226,60 @@ bool intersectTriangle(rayObj ray, vec3 v0, vec3 v1, vec3 v2, out float t)
     t = f * dot(edge2, q);
     if (t > EPSILON) // ray intersection
     {
+        hit.t = t;
         return true;
     }
     else // This means that there is a line intersection but not a ray intersection.
         return false;
 }
 
-bool intersect(rayObj ray, object obj, out float t)
+bool intersectMesh(rayObj ray, object obj, out hitRecord hit)
+{
+  //Go through triangles in the vertices and check for intersections
+  hit.t = MAX_SCENE_BOUNDS;
+  hitRecord tempHit;
+  bool hasHitTemp = false;
+  bool hasHit = false;
+  vec4 a,b,c;
+  float u, v, hu, hv;
+  int hiti;
+  if (intersectBox(ray, obj, tempHit))
+  {
+    for (int i = 0; i < obj.vEnd; i += 3) {
+      vec3 v0, v1, v2;
+      v0 = texelFetch(objectVertexBuffer, i).xyz;
+      v1 = texelFetch(objectVertexBuffer, i + 1).xyz;
+      v2 = texelFetch(objectVertexBuffer, i + 2).xyz;
+      hasHitTemp = intersectTriangle(ray, v0, v1, v2, tempHit, u, v); //Check if the ray hits the box
+      if (hasHitTemp && tempHit.t > 0 && tempHit.t < hit.t) { //Is the hit closer to the camera than the previous hit?
+        hit = tempHit;
+        hasHit = true;
+        hu = u;
+        hv = v;
+        hiti = i;
+      }
+    }
+  }
+  if (hasHit)
+  {
+    hit.normal = triangleNormal(ray.dir, hiti, hu, hv);
+    hit.objType = TYPE_MESH;
+    hit.mat = obj.mat;
+  }
+  return hasHit;
+}
+
+bool intersect(rayObj ray, object obj, out hitRecord hit)
 {
   switch (obj.type) {
   case TYPE_SPHERE:
-      return intersectSphere(ray, obj, t);
+      return intersectSphere(ray, obj, hit);
       break;
     case TYPE_BOX:
-      return intersectBox(ray, obj, t);
+      return intersectBox(ray, obj, hit);
       break;
   case TYPE_MESH:
-      break;
-  }
-}
-
-
-vec3 sphereNormal(vec3 point, vec3 spherePos)
-{
-  return normalize(point - spherePos); 
-}
-
-vec3 triangleNormal(vec3 point, vec3 v0, vec3 v1, vec3 v2)
-{
-    return abs(normalize(cross(v1 - v0, v2 - v0)));
-}
-
-vec3 boxNormal(vec3 point, vec3 min, vec3 max) //Assuming a box fixed in the XYZ plane
-{
-  if (fuzzy_equals(point.x, min.x)) return vec3(-1, 0, 0);
-  if (fuzzy_equals(point.x, max.x)) return vec3(1, 0, 0);
-  if (fuzzy_equals(point.y, min.y)) return vec3(0, -1, 0);
-  if (fuzzy_equals(point.y, max.y)) return vec3(0, 1, 0);
-  if (fuzzy_equals(point.z, min.z)) return vec3(0, 0, -1);
-  if (fuzzy_equals(point.z, max.z)) return vec3(0, 0, 1);
-  return vec3(-1, 0, 0);
-}
-
-vec3 getNormal(vec3 point, object obj)
-{
-  switch (obj.type) {
-    case TYPE_SPHERE:
-      return sphereNormal(point, obj.pos);
-      break;
-    case TYPE_BOX:
-      return boxNormal(point, obj.min, obj.max);
-      break;
-    case TYPE_MESH:
+      return intersectMesh(ray, obj, hit);
       break;
   }
 }
@@ -249,16 +289,23 @@ float traceShadow(rayObj ray) //Check whether ray intersects with light source
   ray.dir = normalize(ray.dir);
   float t = 0;
   bool hasHit = false;
+  hitRecord hit;
 
   //Check if the ray intersects with box objects
-  for (int i = 0; i < NUM_OBJECTS; i++) {
-    hasHit = intersect(ray, objects[i], t); //Check if the ray hits the box
-    if (hasHit && t > 0 && t < MAX_SCENE_BOUNDS) { //Is the hit closer to the camera than the previous hit?
-      return 0; //Shadow!
+  float tprod = 1.0; //For dealing with transparent objects
+    for (int i = 0; i < NUM_OBJECTS; i++) {
+      hasHit = intersect(ray, objects[i], hit); //Check if the ray hits the box
+      if (hasHit && hit.t > 0 && hit.t < MAX_SCENE_BOUNDS) { //Is the hit closer to the camera than the previous hit?
+        if (hit.mat.transparency > 0) //Keep going if you hit a transparent object, but keep track of light loss in tprod
+        {
+          tprod = tprod * hit.mat.transparency;
+        }
+        else
+          return 0; //Shadow!
+      }
     }
-  }
 
-  return 1;
+  return tprod;
 }
 
 float fresnelReflectAmount(vec3 incident, vec3 normal, float n1, float n2, float reflectivity)
@@ -313,23 +360,19 @@ vec4 calculateLight(vec3 normal, vec3 dir, vec3 pos)
     #endif
 }
 
-bool rayHit(rayObj ray, out hitObj hit) {
+bool rayHit(rayObj ray, out hitRecord hit) {
     hit.t = MAX_SCENE_BOUNDS;
+    hitRecord tempHit;
     bool hasHitTemp = false;
     bool hasHit = false;
-    float t = 0;
     //Check if the ray intersects with objects
     for (int i = 0; i < NUM_OBJECTS; i++) {
-      hasHitTemp = intersect(ray, objects[i], t); //Check if the ray hits the box
-      if (hasHitTemp && t > 0 && t < hit.t) { //Is the hit closer to the camera than the previous hit?
-        hit.t = t;
-        hit.mat = objects[i].mat;
-        hit.objType = objects[i].type;
-        hit.objIndex = i;
+      hasHitTemp = intersect(ray, objects[i], tempHit); //Check if the ray hits the box
+      if (hasHitTemp && tempHit.t > 0 && tempHit.t < hit.t) { //Is the hit closer to the camera than the previous hit?
+        hit = tempHit;
         hasHit = true;
       }
     }
-
 
     return hasHit;
 }
@@ -337,7 +380,6 @@ bool rayHit(rayObj ray, out hitObj hit) {
 //The poor mans recursion - two almost identical functions to perform 1 level of recursion
 vec4 secondaryTrace(rayObj ray) {
   int depth = 0;
-  //hitObj skyHit = hitObj(MAX_SCENE_BOUNDS, 0, 0, material(vec4(0.0, 0.6, 0.8, 1.0), 0, 1));
 
   vec4 color = vec4(0.0, 0.0, 0.0, 1.0);
 
@@ -347,13 +389,13 @@ vec4 secondaryTrace(rayObj ray) {
   while (depth < MAX_RAY_DEPTH)
   {
     ray.dir = normalize(ray.dir);
-    hitObj hit;
+    hitRecord hit;
 
     if (rayHit(ray, hit)) //Is an object hit by the ray?
     {
       //Calculate normals
       vec3 pos = getRayPos(ray, hit.t);
-      vec3 normal = getNormal(pos, objects[hit.objIndex]);
+      vec3 normal = hit.normal;
 
       float fr = fresnelReflectAmount(ray.dir, normal, 1.0, hit.mat.refractivity, hit.mat.reflectivity);
 
@@ -392,7 +434,7 @@ vec4 secondaryTrace(rayObj ray) {
 
 vec4 trace(rayObj ray) {
   int depth = 0;
-  //hitObj skyHit = hitObj(MAX_SCENE_BOUNDS, 0, 0, material(vec4(0.0, 0.6, 0.8, 1.0), 0, 1));
+  //hitRecord skyHit = hitRecord(MAX_SCENE_BOUNDS, 0, 0, material(vec4(0.0, 0.6, 0.8, 1.0), 0, 1));
 
   vec4 color = vec4(0.0, 0.0, 0.0, 1.0);
 
@@ -402,13 +444,13 @@ vec4 trace(rayObj ray) {
   while (depth < MAX_RAY_DEPTH)
   {
     ray.dir = normalize(ray.dir);
-    hitObj hit;
+    hitRecord hit;
 
     if (rayHit(ray, hit)) //Is an object hit by the ray?
     {
       //Calculate normals
       vec3 pos = getRayPos(ray, hit.t);
-      vec3 normal = getNormal(pos, objects[hit.objIndex]);
+      vec3 normal = hit.normal;
 
       #if DO_FRESNEL //Do both reflection and refraction
 
@@ -479,7 +521,6 @@ vec4 trace(rayObj ray) {
 
 layout (local_size_x = 16, local_size_y = 8) in;
 void main(void) {
-
   ivec2 pix = ivec2(gl_GlobalInvocationID.xy);
   ivec2 size = imageSize(framebuffer);
   if (pix.x >= size.x || pix.y >= size.y) {

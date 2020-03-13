@@ -21,6 +21,9 @@ project(gpu-pathtracer
     DESCRIPTION "GPU Compute Shader Pathtracer"
 )
 
+# Compiler flags
+set(CMAKE_CXX_FLAGS "")
+
 # Add cmake folder for custom find_package() files
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 
