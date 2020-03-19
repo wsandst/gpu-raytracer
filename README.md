@@ -2,8 +2,10 @@
 Implemented using OpenGL Compute Shaders and C++.  
    
 ## Todo 
-Implement objects as a texture, which allows dynamic object creation instead of the current hardcoded objects in the shader  
 Implement Hierarchical Bounding Volumes to speed up intersection testing  
+Add texture support  
+Add support for multiple lights  
+Fix Fresnel issues  
   
 Future ideas:
 Create a more physically based pathtracer with multiple samples, which would allow for more glossy items and soft shadows. It would however negatively impact other real-time aspects of the Pathtracer.  
@@ -24,8 +26,15 @@ http://raytracerchallenge.com/ - Another interesting website with ray tracing tu
 
 https://www.youtube.com/user/icytower103/videos - Channel showcasing a hybrid ray tracer which runs in real time with soft shadows and such, good info in comments.  
 
-## Build instructions  
-1. Install the required dependencies: [SDL2 link](https://www.libsdl.org/download-2.0.php), [GLEW link](http://glew.sourceforge.net/)  
-2. Clone the repo and the submodules ("git submodule update --init --recursive")
-3. Run cmake
+## Dependencies  
+**SDL2** - for creating OpenGL context and handling input  
+**GLEW** - needed for OpenGL Contex  
+**GLM** - for vector/matrix math  
+**STB** (included as submodule) - for loading and saving images  
+**TinyObjLoader** (included as submodule) - for loading .obj files
+
+## Build instructions   
+1. Install the required dependencies: SDL2, GLEW and GLM.  `apt-get install libsdl2-dev, libglm-dev, libglew-dev`  
+2. Clone the repo and the submodules (`git submodule update --init --recursive`)
+3. Run `cmake` (on Windows you have to manually provide the locations of SDL2, GLM and GLEW through CMake root flags)  
 4. You can now compile/modify the project  
