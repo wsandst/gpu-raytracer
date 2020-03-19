@@ -48,8 +48,12 @@ public:
 	void setMat3(const std::string& name, const glm::mat3& mat) const;
 	void setMat4(const std::string& name, const glm::mat4& mat) const;
 
-	void setObject(std::string &name, const shaderObject objs);
-	void setObjects(const std::string &name, std::vector<shaderObject>& objs);
+	void setObject(std::string &name, const shaderObject object);
+	void setObjects(const std::string &name, std::vector<shaderObject>& objects);
+
+	void setLight(std::string &name, const shaderLight light);
+	void setLights(const std::string &name, const std::vector<shaderLight>& lights);
+
 private:
 	void printIVSuccess(unsigned int shader, GLenum status);
 };

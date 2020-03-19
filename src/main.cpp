@@ -2,6 +2,7 @@
 #include <vector>
 #include <chrono>
 #include <algorithm>
+#include <memory>
 
 #define NOMINMAX
 #include "glm/glm.hpp"
@@ -23,14 +24,19 @@ int main(int argc, char** argv)
 	//Create screen objects
 	Scene scene;
 	scene.addBox(glm::vec3 {-25.0, -1.5, -25.0}, glm::vec3 {50.0, 0.1, 50.0}, glm::vec4 {0.3, 0.3, 0.3, 1.0});
-	scene.addSphere(glm::vec3 {10.0, 2.0, 3.0}, 1, glm::vec4 {0.1, 0.1, 0.7, 1.0}, 0.7);
-	scene.addMesh("cube.obj", glm::vec3 {7.0, 2.0, 10.0}, glm::vec4 {1, 0.1, 0.1, 1.0}, 2, 0.7, 1.2);
+	scene.addBox(glm::vec3 {-25.0, -1.4, 25.0}, glm::vec3 {50.0, 25.0, 0.1}, glm::vec4 {0.3, 0.3, 0.3, 1.0});
+	scene.addSphere(glm::vec3 {1.0, 5.0, 1.0}, 0.5, glm::vec4 {1, 0.8, 0.6, 1.0}, 0.95); //Represents the point light source
+	scene.addSphere(glm::vec3 {10.0, 2.0, 3.0}, 1, glm::vec4 {0.1, 0.1, 0.7, 1.0});
+	scene.addMesh("cube.obj", glm::vec3 {7.0, 2.0, 10.0}, glm::vec4 {1, 0.1, 0.1, 1.0});//, 2, 0.7, 1.2);
 	scene.addMesh("head.obj", glm::vec3 {3.0, 2.0, 10.0}, glm::vec4 {1, 0.1, 0.1, 1.0});
+	//Lights
+	scene.addLightDirectional(glm::normalize(glm::vec3{1.0, 1.0, 1.0}), glm::vec3(0.5));
+	scene.addLightPoint(glm::vec3 {1.0, 5.0, 1.0}, 100.0);
 
 	//Renderer setup
 	bool quit = false;
 
-	Renderer renderer(scene.objects, scene.vertices, scene.normals, windowWidth, windowHeight);
+	Renderer renderer(scene, windowWidth, windowHeight);
 	InputHandler inputHandler(renderer, renderer.camera);
 
 	int frameCount = 0;

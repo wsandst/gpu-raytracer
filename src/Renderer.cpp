@@ -1,12 +1,8 @@
 #include "Renderer.h"
 
-Renderer::Renderer(std::vector<shaderObject>& _objects, std::vector<float>& _objVertices, std::vector<float>& _objNormals) : 
-objects(_objects), objVertices(_objVertices), objNormals(_objNormals)
-{
-}
 
-Renderer::Renderer(std::vector<shaderObject>& _objects, std::vector<float>& _objVertices, std::vector<float>& _objNormals, int windowWidth, int windowHeight) : 
-objects(_objects), objVertices(_objVertices), objNormals(_objNormals)
+Renderer::Renderer(Scene& _scene, int windowWidth, int windowHeight) : 
+scene(_scene)
 {
 	this->windowWidth = windowWidth;
 	this->windowHeight = windowHeight;
@@ -186,7 +182,7 @@ void Renderer::initPathTracer()
 	//Object vertices samplerBuffer
 	glGenBuffers(1, &vertexBuffer);
 	glBindBuffer(GL_TEXTURE_BUFFER, vertexBuffer);
-	glBufferData(GL_TEXTURE_BUFFER, sizeof(float)*objVertices.size(), &objVertices[0], GL_STATIC_DRAW);
+	glBufferData(GL_TEXTURE_BUFFER, sizeof(float)*scene.vertices.size(), &scene.vertices[0], GL_STATIC_DRAW);
 
 	glGenTextures(1, &vertexBufferTex);
 	glBindTexture(GL_TEXTURE_BUFFER, vertexBufferTex);
@@ -195,7 +191,7 @@ void Renderer::initPathTracer()
 	//Object normals samplerBuffer
 	glGenBuffers(1, &normalBuffer);
 	glBindBuffer(GL_TEXTURE_BUFFER, normalBuffer);
-	glBufferData(GL_TEXTURE_BUFFER, sizeof(float)*objNormals.size(), &objNormals[0], GL_STATIC_DRAW);
+	glBufferData(GL_TEXTURE_BUFFER, sizeof(float)*scene.normals.size(), &scene.normals[0], GL_STATIC_DRAW);
 
 	glGenTextures(1, &normalBufferTex);
 	glBindTexture(GL_TEXTURE_BUFFER, normalBufferTex);
@@ -205,7 +201,8 @@ void Renderer::initPathTracer()
 
 	//Load objects
 	pathTracerComputeShader.use();
-	pathTracerComputeShader.setObjects("objects", objects);
+	pathTracerComputeShader.setObjects("objects", scene.objects);
+	pathTracerComputeShader.setLights("lights", scene.lights);
 }
 
 void Renderer::initSkyBox()

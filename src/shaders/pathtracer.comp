@@ -1,16 +1,12 @@
 #version 430 core
 
-//Output texture
+// Output texture
 layout(binding = 0, rgba32f) uniform writeonly image2D framebuffer;
 
-//Object inputs
-//layout(std430, binding = 1) buffer ObjectsBuffer { Object objects[]; };
-
-//Skybox
+// Skybox
 layout(binding = 1) uniform samplerCube skybox;
 
-//Camera uniforms
-
+// Camera uniforms
 uniform vec3 eye;
 uniform vec3 ray00;
 uniform vec3 ray01;
@@ -45,16 +41,19 @@ struct object {
 
 };
 
-struct light{
-    vec3 pos;
-    vec4 color;
-};
+#define LIGHT_TYPE_DIR 0
+#define LIGHT_TYPE_POINT 1
 
-#define FLOAT_COMPARISON_PRECISION 0.00001
+struct light{
+    int type;
+    vec3 pos; //also dir for directional lights
+    vec3 color;
+    float intensity;
+};
 
 //Raycasting settings
 #define MAX_RAY_DEPTH 10
-#define DO_REFRACTION 1  // 0 to turn off refraction
+#define DO_REFRACTION 1  // 0 to turn off refraction. Enabling this also turns on transparency.
 #define DO_REFLECTION 0  // 0 to turn off reflectivity
 #define DO_FRESNEL    0  // 0 to turn off fresnel. fresnel will only show up if reflectivity is also on.
 #define DO_SHADOWS    1
@@ -62,20 +61,23 @@ struct light{
 #define DOUBLE_SIDED  1  // Do rays hit objects entering from the "inside"?
 #define GOROUD_SHADING 1 //How should the normals be treated from meshes? Flat vs Goroud
 
-
-//Object definitions
-#define MAX_SCENE_BOUNDS 1000.0
-#define NUM_OBJECTS 4
-uniform object objects[NUM_OBJECTS];
-layout(binding = 2) uniform samplerBuffer objectVertexBuffer;
-layout(binding = 3) uniform samplerBuffer objectNormalBuffer;
 //Constants
 #define AMBIENT_STRENGTH 0.1
 #define SPECULAR_STRENGTH 0.7
 #define BIAS 0.001
+#define FLOAT_COMPARISON_PRECISION 0.0001
+#define M_PI 3.1415926535897932384626433832795
 
-const vec3 sunLightColor = vec3(1.0, 1.0, 1.0); //Direction for the sunlight
-const vec3 sunLight = normalize(vec3(1.0, 1.0, 1.0));
+//Object definitions
+#define MAX_SCENE_BOUNDS 1000.0
+#define NUM_OBJECTS 6
+#define NUM_LIGHTS 2
+
+uniform object objects[NUM_OBJECTS];
+uniform light lights[NUM_LIGHTS];
+
+layout(binding = 2) uniform samplerBuffer objectVertexBuffer;
+layout(binding = 3) uniform samplerBuffer objectNormalBuffer;
 
 //Support structs
 struct rayObj
@@ -90,6 +92,12 @@ struct hitRecord
   int objType; //Box 1, Sphere 2
   material mat;
   vec3 normal;
+};
+
+struct lightRecord //Summed for all lights
+{
+  vec3 diffuse;
+  vec3 specular;
 };
 
 
@@ -117,8 +125,7 @@ vec3 getRayPos(rayObj ray, float t)
   return ray.ori + ray.dir * t;
 }
 
-//Intersect functions. Determines if a ray hits a certain object.
-//t is the location of the hit. Can get it as a point through the function: ray.ori + ray.dir * t
+//Functions for finding the normal for the objects/primitives spheres, boxes and triangles
 
 vec3 sphereNormal(vec3 dir, vec3 point, vec3 spherePos)
 {
@@ -161,6 +168,10 @@ vec3 triangleNormal(vec3 dir, int i, float u, float v) //Barycentric coordinates
 
 }
 
+
+//Intersect functions. Determines if a ray hits a certain object.
+//t is the location of the hit. Can get it as a point through the function: ray.ori + ray.dir * t
+//Functions for boxes, spheres, triangles and meshes (box + triangles)
 bool intersectBox(rayObj ray, const object b, out hitRecord hit) {
   vec3 tMin = (b.pos + b.bMin * b.scale - ray.ori) / ray.dir;
   vec3 tMax = (b.pos + b.bMax * b.scale - ray.ori) / ray.dir;
@@ -177,6 +188,7 @@ bool intersectBox(rayObj ray, const object b, out hitRecord hit) {
     #endif
     
     hit.mat = b.mat;
+    hit.objType = TYPE_BOX;
     hit.normal = boxNormal(ray.dir, hit.t*ray.dir + ray.ori, b.pos, b.bMax);
     return true;
   }
@@ -293,28 +305,48 @@ bool intersect(rayObj ray, object obj, out hitRecord hit)
   }
 }
 
-float traceShadow(rayObj ray) //Check whether ray intersects with light source
+lightRecord traceShadow(vec3 point, vec3 normal, vec3 dir) //Check whether ray intersects with light source
 {
-  ray.dir = normalize(ray.dir);
-  float t = 0;
-  bool hasHit = false;
-  hitRecord hit;
-
+  rayObj ray;
+  lightRecord lightRcrd = lightRecord(vec3(0), vec3(0));
+  vec3 lightDir;
+  float maxDistance; //Maximum ray travel distance
   //Check if the ray intersects with box objects
-  float tprod = 1.0; //For dealing with transparent objects
+  for (int j = 0; j < NUM_LIGHTS; j++) { //Go through all the lights
+    bool hasHitTemp = false;
+    hitRecord hit;
+    float tprod = 1.0; //For dealing with transparent objects
+    if (lights[j].type == LIGHT_TYPE_DIR)
+    {
+      lightDir = lights[j].pos;
+      maxDistance = MAX_SCENE_BOUNDS;
+    }
+    else if (lights[j].type == LIGHT_TYPE_POINT)
+    {
+      lightDir = normalize(lights[j].pos - point);
+      maxDistance  = length(lights[j].pos - point);
+    }
+    ray = rayObj(lightDir, point + normal * BIAS);
     for (int i = 0; i < NUM_OBJECTS; i++) {
-      hasHit = intersect(ray, objects[i], hit); //Check if the ray hits the box
-      if (hasHit && hit.t > 0 && hit.t < MAX_SCENE_BOUNDS) { //Is the hit closer to the camera than the previous hit?
+      hasHitTemp = intersect(ray, objects[i], hit); //Check if the ray hits the object
+      if (hasHitTemp && hit.t > 0 && hit.t < maxDistance) { //Is the hit closer to the camera than the previous hit?
         if (hit.mat.transparency > 0) //Keep going if you hit a transparent object, but keep track of light loss in tprod
-        {
           tprod = tprod * hit.mat.transparency;
-        }
         else
-          return 0; //Shadow!
+          tprod = 0;
       }
     }
+    if (tprod > 0) //Calculate light intensity from this light
+    {
+      if (lights[j].type == LIGHT_TYPE_POINT) //
+        tprod = lights[j].intensity / (4 * M_PI * maxDistance); 
+      lightRcrd.diffuse += max(dot(normal, lightDir), 0.0) * lights[j].color * tprod;
 
-  return tprod;
+      vec3 reflectDir = reflect(lightDir, normal);  
+      lightRcrd.specular += pow(max(dot(dir, reflectDir), 0.0), 32) * SPECULAR_STRENGTH * lights[j].color * tprod;
+    }
+  }
+  return lightRcrd;
 }
 
 float fresnelReflectAmount(vec3 incident, vec3 normal, float n1, float n2, float reflectivity)
@@ -342,28 +374,17 @@ float fresnelReflectAmount(vec3 incident, vec3 normal, float n1, float n2, float
 
 vec4 calculateLight(vec3 normal, vec3 dir, vec3 pos)
 { //Direction for the sunlight
-    // ambient
-    vec3 ambient = AMBIENT_STRENGTH * sunLightColor;
-  	
-    // diffuse 
-    float diff = max(dot(normal, sunLight), 0.0);
-    vec3 diffuse = diff * sunLightColor;
-    
-    // specular
-    vec3 reflectDir = reflect(sunLight, normal);  
-    float spec = pow(max(dot(dir, reflectDir), 0.0), 32);
-    vec3 specular = SPECULAR_STRENGTH * spec * sunLightColor;
 
-    //shadow
-    #if DO_SHADOWS && DO_LIGHT
-      float shadow = traceShadow(rayObj(sunLight, pos + normal * BIAS));
-    #else
-      float shadow = 1;
-    #endif
+    lightRecord lightRcrd = traceShadow(pos, normal, dir);
+
+    vec3 ambient = vec3(AMBIENT_STRENGTH);
+  	
+    vec3 diffuse = lightRcrd.diffuse;
     
-    //return vec4(1.0);
+    vec3 specular = lightRcrd.specular;
+
     #if DO_LIGHT
-      return vec4(shadow * (diffuse + specular) + ambient, 1.0);
+      return vec4(diffuse + specular + ambient, 1.0);
     #else
       return vec4(ambient, 1.0);
     #endif
@@ -443,7 +464,6 @@ vec4 secondaryTrace(rayObj ray) {
 
 vec4 trace(rayObj ray) {
   int depth = 0;
-  //hitRecord skyHit = hitRecord(MAX_SCENE_BOUNDS, 0, 0, material(vec4(0.0, 0.6, 0.8, 1.0), 0, 1));
 
   vec4 color = vec4(0.0, 0.0, 0.0, 1.0);
 

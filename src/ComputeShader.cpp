@@ -108,22 +108,22 @@ void ComputeShader::setMat4(const std::string& name, const glm::mat4& mat) const
 	glUniformMatrix4fv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE, &mat[0][0]);
 }
 
-void ComputeShader::setObject(std::string& name, const shaderObject obj)
+void ComputeShader::setObject(std::string& name, const shaderObject object)
 {
-	glUniform1i(glGetUniformLocation(ID, (name + ".type").c_str()), obj.type);
-	glUniform3fv(glGetUniformLocation(ID, (name + ".pos").c_str()), 1, &obj.pos[0]);
-	glUniform4fv(glGetUniformLocation(ID, (name + ".mat.color").c_str()), 1, &obj.mat.color[0]);
-	glUniform1f(glGetUniformLocation(ID, (name + ".mat.reflectivity").c_str()), obj.mat.reflectivity);
-	glUniform1f(glGetUniformLocation(ID, (name + ".mat.refractivity").c_str()), obj.mat.refractivity);
-	glUniform1f(glGetUniformLocation(ID, (name + ".mat.transparency").c_str()), obj.mat.transparency);
+	glUniform1i(glGetUniformLocation(ID, (name + ".type").c_str()), object.type);
+	glUniform3fv(glGetUniformLocation(ID, (name + ".pos").c_str()), 1, &object.pos[0]);
+	glUniform4fv(glGetUniformLocation(ID, (name + ".mat.color").c_str()), 1, &object.mat.color[0]);
+	glUniform1f(glGetUniformLocation(ID, (name + ".mat.reflectivity").c_str()), object.mat.reflectivity);
+	glUniform1f(glGetUniformLocation(ID, (name + ".mat.refractivity").c_str()), object.mat.refractivity);
+	glUniform1f(glGetUniformLocation(ID, (name + ".mat.transparency").c_str()), object.mat.transparency);
 
-	glUniform1i(glGetUniformLocation(ID, (name + ".vStart").c_str()), obj.vStart);
-	glUniform1i(glGetUniformLocation(ID,(name + ".vEnd").c_str()), obj.vEnd);
+	glUniform1i(glGetUniformLocation(ID, (name + ".vStart").c_str()), object.vStart);
+	glUniform1i(glGetUniformLocation(ID,(name + ".vEnd").c_str()), object.vEnd);
 
-	glUniform1f(glGetUniformLocation(ID, (name + ".scale").c_str()), obj.scale);
+	glUniform1f(glGetUniformLocation(ID, (name + ".scale").c_str()), object.scale);
 
-	glUniform3fv(glGetUniformLocation(ID, (name + ".bMax").c_str()), 1, &obj.bMax[0]);
-	glUniform3fv(glGetUniformLocation(ID, (name + ".bMin").c_str()), 1, &obj.bMin[0]);
+	glUniform3fv(glGetUniformLocation(ID, (name + ".bMax").c_str()), 1, &object.bMax[0]);
+	glUniform3fv(glGetUniformLocation(ID, (name + ".bMin").c_str()), 1, &object.bMin[0]);
 }
 
 void ComputeShader::setObjects(const std::string &name, std::vector<shaderObject>& objects)
@@ -135,7 +135,25 @@ void ComputeShader::setObjects(const std::string &name, std::vector<shaderObject
 		std::string newName = os.str();
 		setObject(newName, objects[i]);
 	}
-	
+}
+
+void ComputeShader::setLight(std::string &name, const shaderLight light) 
+{
+	glUniform1i(glGetUniformLocation(ID, (name + ".type").c_str()), light.type);
+	glUniform3fv(glGetUniformLocation(ID, (name + ".pos").c_str()), 1, &light.pos[0]);
+	glUniform3fv(glGetUniformLocation(ID, (name + ".color").c_str()), 1, &light.color[0]);
+	glUniform1f(glGetUniformLocation(ID, (name + ".intensity").c_str()), light.intensity);
+}
+
+void ComputeShader::setLights(const std::string &name, const std::vector<shaderLight>& lights)
+{
+	for (size_t i = 0; i < lights.size(); i++)
+	{
+		std::ostringstream os;
+        os << name << "[" << i << "]";
+		std::string newName = os.str();
+		setLight(newName, lights[i]);
+	}
 }
 
 void ComputeShader::printIVSuccess(unsigned int shader, GLenum status)

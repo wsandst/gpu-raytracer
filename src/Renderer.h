@@ -14,6 +14,7 @@
 #include "VBOWrapper.h"
 #include "Mesh.h"
 #include "Object.h"
+#include "Scene.h"
 
 #include <vector>
 #include <unordered_map>
@@ -33,13 +34,9 @@ public:
     float deltaTime = 0.0f;
     Camera camera;
 
-	std::vector<shaderObject>& objects;
-	std::vector<GLfloat>& objVertices;
-	std::vector<GLfloat>& objNormals;
+	Scene& scene;
 
-    Renderer(std::vector<shaderObject>& _objects, std::vector<float>& _objVertices, std::vector<float>& _objNormals);
-
-	Renderer(std::vector<shaderObject>& _objects, std::vector<float>& _objVertices, std::vector<float>& _objNormals, int windowWidth, int windowHeight);
+	Renderer(Scene& _scene, int windowWidth = 1280, int windowHeight = 720);
 
     ~Renderer();
 

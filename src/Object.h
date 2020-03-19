@@ -6,7 +6,10 @@
 #define TYPE_SPHERE 1
 #define TYPE_BOX 2
 
-struct shaderMaterial
+#define LIGHT_TYPE_DIR 0
+#define LIGHT_TYPE_POINT 1
+
+struct shaderMaterial //Struct connected to shaderObject, represents shader struct 'material'
 {
     GLfloat color[4] = {0.5,0.5,0.5,1.0};
     GLfloat reflectivity = 0;
@@ -18,7 +21,7 @@ struct shaderMaterial
     }
 };
 
-struct shaderObject //Struct to be sent in to the compute shader
+struct shaderObject //Struct to be sent in to the compute shader, represents shader struct 'object'
 {
     GLint type;
     GLfloat pos[3] = {0,0,0};
@@ -54,5 +57,20 @@ struct shaderObject //Struct to be sent in to the compute shader
         this->vStart = vStart;
         this->vEnd = vEnd;
         this->scale = scale;
+    }
+};
+
+struct shaderLight //Struct to be sent in to the compute shader, represents shader struct 'light'
+{
+    GLint type;
+    GLfloat pos[3] = {1.0,1.0,1.0}; //Represents direction for 
+    GLfloat color[3] = {1.0,1.0,1.0};
+    GLfloat intensity = 1.0; //For point lights
+    void set(int type, glm::vec3 pos, glm::vec3 color = {1.0, 1.0, 1.0}, float intensity = 1)
+    {
+        this->type = type;
+        this->pos[0] = pos.x, this->pos[1] = pos.y, this->pos[2] = pos.z;
+        this->color[0] = color.r, this->color[1] = color.g, this->color[2] = color.b;
+        this->intensity = intensity;
     }
 };
