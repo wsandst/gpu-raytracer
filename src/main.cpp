@@ -23,6 +23,7 @@ int main(int argc, char** argv)
 {
 	//Create screen objects
 	Scene scene;
+	/*
 	scene.addBox(glm::vec3 {-25.0, -1.5, -25.0}, glm::vec3 {50.0, 0.1, 50.0}, glm::vec4 {0.3, 0.3, 0.3, 1.0});
 	scene.addBox(glm::vec3 {-25.0, -1.4, 25.0}, glm::vec3 {50.0, 25.0, 0.1}, glm::vec4 {0.3, 0.3, 0.3, 1.0});
 	scene.addSphere(glm::vec3 {1.0, 5.0, 1.0}, 0.5, glm::vec4 {1, 0.8, 0.6, 1.0}, 0.95); //Represents the point light source
@@ -32,6 +33,23 @@ int main(int argc, char** argv)
 	//Lights
 	scene.addLightDirectional(glm::normalize(glm::vec3{1.0, 1.0, 1.0}), glm::vec3(0.5));
 	scene.addLightPoint(glm::vec3 {1.0, 5.0, 1.0}, 100.0);
+	*/
+
+	//Cornell box scene
+	scene.addLightPoint(glm::vec3 {5.0, 9.0, 5.0}, 50.0);
+	scene.addSphere(glm::vec3 {5.0, 9.0, 5.0}, 0.5, glm::vec4 {1, 0.8, 0.6, 1.0}, 0.95); //Represents the point light source
+
+	//Box
+	scene.addBox(glm::vec3 {0.0, 0, 0.0}, glm::vec3 {10.0, 0.1, 10.0}, glm::vec4 {1.0, 1.0, 1.0, 1.0}); //Bottom, white
+	scene.addBox(glm::vec3 {0.0, 9.9, 0.0}, glm::vec3 {10.0, 0.1, 10.0}, glm::vec4 {1.0, 1.0, 1.0, 1.0}); //Top, white
+	scene.addBox(glm::vec3 {0.0, 0, 0.0}, glm::vec3 {0.1, 10.0, 10.0}, glm::vec4 {1.0, 1.0, 1.0, 1.0}); //Back, white
+	scene.addBox(glm::vec3 {0.0, 0, 9.9}, glm::vec3 {10, 10.0, 0.1}, glm::vec4 {1.0, 0, 0, 1.0}); //Left, red
+	scene.addBox(glm::vec3 {0.0, 0, 0}, glm::vec3 {10, 10.0, 0.1}, glm::vec4 {0, 1.0, 0, 1.0}); //Right, green
+
+	//Contents
+	//scene.addMesh("teapot2.obj", glm::vec3 {3.0, 0.1, 3.0}, glm::vec4 {1, 0.1, 0.1, 1.0}, 0.03);
+	scene.addSphere(glm::vec3 {5.0, 1.3, 7.0}, 1.2, glm::vec4 {0.5, 0.5, 0.5, 1.0}, 0.0, 1.0, 0.4);
+	scene.addSphere(glm::vec3 {5.0, 1.3, 3.0}, 1.2, glm::vec4 {0.5, 0.5, 0.5, 1.0}, 0.0, 1.0, 0.4);
 
 	//Renderer setup
 	bool quit = false;

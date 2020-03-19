@@ -54,7 +54,7 @@ struct light{
 //Raycasting settings
 #define MAX_RAY_DEPTH 10
 #define DO_REFRACTION 1  // 0 to turn off refraction. Enabling this also turns on transparency.
-#define DO_REFLECTION 0  // 0 to turn off reflectivity
+#define DO_REFLECTION 1  // 0 to turn off reflectivity
 #define DO_FRESNEL    0  // 0 to turn off fresnel. fresnel will only show up if reflectivity is also on.
 #define DO_SHADOWS    1
 #define DO_LIGHT      1
@@ -70,8 +70,8 @@ struct light{
 
 //Object definitions
 #define MAX_SCENE_BOUNDS 1000.0
-#define NUM_OBJECTS 6
-#define NUM_LIGHTS 2
+#define NUM_OBJECTS 8
+#define NUM_LIGHTS 1
 
 uniform object objects[NUM_OBJECTS];
 uniform light lights[NUM_LIGHTS];

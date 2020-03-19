@@ -119,15 +119,13 @@ void Renderer::initOpenGL()
 
 	glGenVertexArrays(1, &VAO);
 	glBindVertexArray(VAO);
-	
-
 
 	//Wireframes
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-	
+
 	//Antialiasing
 	SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
-	SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 2);
+	SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 16);
 	glEnable(GL_MULTISAMPLE);
 
 	glViewport(0, 0, windowWidth, windowHeight);
@@ -144,17 +142,20 @@ void Renderer::initSDL()
 	screenResHeight = DM.h;
 	screenResWidth = DM.w;
 
-	window = SDL_CreateWindow(windowTitle, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, windowWidth, windowHeight, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE);
-	
+	window = SDL_CreateWindow(windowTitle, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, windowWidth, windowHeight, 
+	SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE);
+
+	glContext = SDL_GL_CreateContext(window);
+
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
-	glContext = SDL_GL_CreateContext(window);
+
+	SDL_GL_SetSwapInterval(1);
+	SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, 1); 
 
 	SDL_SetRelativeMouseMode(SDL_TRUE);
 	SDL_ShowCursor(0);
-
-	SDL_GL_SetSwapInterval(1);
 }
 
 void Renderer::initPathTracer()
