@@ -199,11 +199,8 @@ void Renderer::initPathTracer()
 	glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA32F_ARB, normalBuffer);
 
 
-
 	//Load objects
-	pathTracerComputeShader.use();
-	pathTracerComputeShader.setObjects("objects", scene.objects);
-	pathTracerComputeShader.setLights("lights", scene.lights);
+	loadObjects();
 }
 
 void Renderer::initSkyBox()
@@ -241,12 +238,14 @@ void Renderer::close()
 	SDL_Quit();
 }
 
-void Renderer::loadVBOs(std::vector<Mesh>& meshes)
+void Renderer::loadObjects()
 {
-	for (auto &mesh : meshes)
-	{
-		geometryVBOs.push_back(GeometryVBO(mesh.pos, mesh.vertices));
-	}
+	//Send objects into shader
+	pathTracerComputeShader.use();
+	pathTracerComputeShader.setInt("objectCount", scene.objects.size());
+	pathTracerComputeShader.setInt("lightCount", scene.lights.size());
+	pathTracerComputeShader.setObjects("objects", scene.objects);
+	pathTracerComputeShader.setLights("lights", scene.lights);
 }
 
 void Renderer::toggleFullscreen() {

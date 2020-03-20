@@ -61,7 +61,7 @@ public:
 
     void close();
 
-	void loadVBOs(std::vector<Mesh>& meshes);
+	void loadObjects();
 
 	void toggleFullscreen();
 

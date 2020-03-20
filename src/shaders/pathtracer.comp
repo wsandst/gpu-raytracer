@@ -54,7 +54,7 @@ struct light{
 //Raycasting settings
 #define MAX_RAY_DEPTH 10
 #define DO_REFRACTION 1  // 0 to turn off refraction. Enabling this also turns on transparency.
-#define DO_REFLECTION 1  // 0 to turn off reflectivity
+#define DO_REFLECTION 0  // 0 to turn off reflectivity
 #define DO_FRESNEL    0  // 0 to turn off fresnel. fresnel will only show up if reflectivity is also on.
 #define DO_SHADOWS    1
 #define DO_LIGHT      1
@@ -70,11 +70,15 @@ struct light{
 
 //Object definitions
 #define MAX_SCENE_BOUNDS 1000.0
-#define NUM_OBJECTS 8
-#define NUM_LIGHTS 1
+#define MAX_OBJECT_COUNT 10
+#define MAX_LIGHT_COUNT 10
 
-uniform object objects[NUM_OBJECTS];
-uniform light lights[NUM_LIGHTS];
+
+uniform int objectCount;
+uniform int lightCount;
+
+uniform object objects[MAX_OBJECT_COUNT];
+uniform light lights[MAX_LIGHT_COUNT];
 
 layout(binding = 2) uniform samplerBuffer objectVertexBuffer;
 layout(binding = 3) uniform samplerBuffer objectNormalBuffer;
@@ -312,7 +316,7 @@ lightRecord traceShadow(vec3 point, vec3 normal, vec3 dir) //Check whether ray i
   vec3 lightDir;
   float maxDistance; //Maximum ray travel distance
   //Check if the ray intersects with box objects
-  for (int j = 0; j < NUM_LIGHTS; j++) { //Go through all the lights
+  for (int j = 0; j < lightCount; j++) { //Go through all the lights
     bool hasHitTemp = false;
     hitRecord hit;
     float tprod = 1.0; //For dealing with transparent objects
@@ -327,7 +331,7 @@ lightRecord traceShadow(vec3 point, vec3 normal, vec3 dir) //Check whether ray i
       maxDistance  = length(lights[j].pos - point);
     }
     ray = rayObj(lightDir, point + normal * BIAS);
-    for (int i = 0; i < NUM_OBJECTS; i++) {
+    for (int i = 0; i < objectCount; i++) {
       hasHitTemp = intersect(ray, objects[i], hit); //Check if the ray hits the object
       if (hasHitTemp && hit.t > 0 && hit.t < maxDistance) { //Is the hit closer to the camera than the previous hit?
         if (hit.mat.transparency > 0) //Keep going if you hit a transparent object, but keep track of light loss in tprod
@@ -378,13 +382,9 @@ vec4 calculateLight(vec3 normal, vec3 dir, vec3 pos)
     lightRecord lightRcrd = traceShadow(pos, normal, dir);
 
     vec3 ambient = vec3(AMBIENT_STRENGTH);
-  	
-    vec3 diffuse = lightRcrd.diffuse;
-    
-    vec3 specular = lightRcrd.specular;
 
     #if DO_LIGHT
-      return vec4(diffuse + specular + ambient, 1.0);
+      return vec4(lightRcrd.diffuse + lightRcrd.specular + ambient, 1.0);
     #else
       return vec4(ambient, 1.0);
     #endif
@@ -396,7 +396,7 @@ bool rayHit(rayObj ray, out hitRecord hit) {
     bool hasHitTemp = false;
     bool hasHit = false;
     //Check if the ray intersects with objects
-    for (int i = 0; i < NUM_OBJECTS; i++) {
+    for (int i = 0; i < objectCount; i++) {
       hasHitTemp = intersect(ray, objects[i], tempHit); //Check if the ray hits the box
       if (hasHitTemp && tempHit.t > 0 && tempHit.t < hit.t) { //Is the hit closer to the camera than the previous hit?
         hit = tempHit;
