@@ -27,6 +27,7 @@ public:
 	int screenResHeight, screenResWidth;
 	bool isFullScreen = false;
 	bool borderlessFullScreen = false;
+	const int MSAALevel = 2; //MS Antialiasing: 1 for none, 2 for 4x, 4 for 16x
 
 	enum RenderType {PathTracer, Rasterizer};
 	RenderType renderType = PathTracer;

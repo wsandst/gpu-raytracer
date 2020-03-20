@@ -84,7 +84,7 @@ void Renderer::drawPathTracer()
 	glBindTexture(GL_TEXTURE_BUFFER, normalBufferTex);
 
 	 // launch compute shaders!
-	glDispatchCompute((GLuint)windowWidth, (GLuint)windowHeight, 1);
+	glDispatchCompute((GLuint)windowWidth*MSAALevel, (GLuint)windowHeight*MSAALevel, 1);
 	
 	// make sure writing to image has finished before read
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
@@ -98,7 +98,7 @@ void Renderer::drawPathTracer()
 
 void Renderer::init()
 {
-	camera = Camera(windowWidth, windowHeight);
+	camera = Camera(windowWidth*MSAALevel, windowHeight*MSAALevel);
 
 	initSDL();
 	initOpenGL();
@@ -123,11 +123,6 @@ void Renderer::initOpenGL()
 	//Wireframes
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-	//Antialiasing
-	SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
-	SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 16);
-	glEnable(GL_MULTISAMPLE);
-
 	glViewport(0, 0, windowWidth, windowHeight);
 }
 
@@ -141,6 +136,11 @@ void Renderer::initSDL()
 	SDL_GetCurrentDisplayMode(0, &DM);
 	screenResHeight = DM.h;
 	screenResWidth = DM.w;
+
+	//Antialiasing
+	SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
+	SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, MSAALevel*MSAALevel);
+	glEnable(GL_MULTISAMPLE);
 
 	window = SDL_CreateWindow(windowTitle, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, windowWidth, windowHeight, 
 	SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE);
@@ -174,7 +174,7 @@ void Renderer::initPathTracer()
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, windowWidth, windowHeight, 0, GL_RGBA, GL_FLOAT,
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, windowWidth*MSAALevel, windowHeight*MSAALevel, 0, GL_RGBA, GL_FLOAT,
 		NULL);
 	glBindImageTexture(0, textureOutput, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
 
@@ -279,12 +279,11 @@ void Renderer::updateResolution()
 	glViewport(0, 0, windowWidth, windowHeight);
 
 	glActiveTexture(GL_TEXTURE0);
-	//glBindTexture(GL_TEXTURE_2D, textureOutput);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, windowWidth, windowHeight, 0, GL_RGBA, GL_FLOAT,
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, windowWidth*MSAALevel, windowHeight*MSAALevel, 0, GL_RGBA, GL_FLOAT,
 		NULL);
 	
-	camera.windowWidth = windowWidth;
-	camera.windowHeight = windowHeight;
+	camera.windowWidth = windowWidth*MSAALevel;
+	camera.windowHeight = windowHeight*MSAALevel;
 	render();
 
 }
