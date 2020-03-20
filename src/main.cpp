@@ -35,7 +35,7 @@ int main(int argc, char** argv)
 	scene.addLightPoint(glm::vec3 {1.0, 5.0, 1.0}, 100.0, glm::vec3 {1.0, 1.0, 1.0});*/
 	
 	//Cornell box scene 8 objects, 1 light
-	scene.addLightPoint(glm::vec3 {5.0, 9.0, 5.0}, 50.0);
+	scene.addLightPoint(glm::vec3 {5.0, 9.0, 5.0}, 50.0, glm::vec3 {1.0, 1.0, 0.8});
 	scene.addSphere(glm::vec3 {5.0, 9.0, 5.0}, 0.5, glm::vec4 {1, 0.8, 0.6, 1.0}, 0.95); //Represents the point light source
 
 	//Box
@@ -47,8 +47,9 @@ int main(int argc, char** argv)
 
 	//Contents
 	//scene.addMesh("teapot2.obj", glm::vec3 {3.0, 0.1, 3.0}, glm::vec4 {1, 0.1, 0.1, 1.0}, 0.03);
-	scene.addSphere(glm::vec3 {5.0, 1.3, 7.0}, 1.2, glm::vec4 {0.5, 0.5, 0.5, 1.0}, 0.0, 1.0, 0.4);
-	scene.addSphere(glm::vec3 {5.0, 1.3, 3.0}, 1.2, glm::vec4 {0.5, 0.5, 0.5, 1.0}, 0.0, 1.0, 0.4);
+	scene.addSphere(glm::vec3 {5.0, 1.3, 7.0}, 1.2, glm::vec4 {0.5, 0.5, 0.5, 1.0});
+	scene.addBox(glm::vec3 {9.9, 0, 0.0}, glm::vec3 {0.1, 10.0, 10.0}, glm::vec4 {1.0, 0.9, 0.9, 1.0}, 1.0, 0.9, 1.2); //Window to Cornell Box
+	//scene.addSphere(glm::vec3 {5.0, 1.3, 3.0}, 1.2, glm::vec4 {0.5, 0.5, 0.5, 1.0}, 0.0, 1.0, 0.4);
 
 	//Renderer setup
 	bool quit = false;
@@ -76,7 +77,6 @@ int main(int argc, char** argv)
 				begin = std::chrono::system_clock::now();
 				//Modifying object test
 			}
-
 			frameCount++;
 		}
 		if (inputHandler.exit)

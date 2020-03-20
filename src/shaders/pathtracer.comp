@@ -54,8 +54,8 @@ struct light{
 //Raycasting settings
 #define MAX_RAY_DEPTH 10
 #define DO_REFRACTION 1  // 0 to turn off refraction. Enabling this also turns on transparency.
-#define DO_REFLECTION 0  // 0 to turn off reflectivity
-#define DO_FRESNEL    0  // 0 to turn off fresnel. fresnel will only show up if reflectivity is also on.
+#define DO_REFLECTION 1  // 0 to turn off reflectivity
+#define DO_FRESNEL    1  // 0 to turn off fresnel. fresnel will only show up if reflectivity is also on.
 #define DO_SHADOWS    1
 #define DO_LIGHT      1
 #define DOUBLE_SIDED  1  // Do rays hit objects entering from the "inside"?
@@ -427,6 +427,23 @@ vec4 secondaryTrace(rayObj ray) {
       vec3 pos = getRayPos(ray, hit.t);
       vec3 normal = hit.normal;
 
+      if (hit.mat.transparency == 0) //No reflectivity, no need to bounce anymore
+      {
+        if (hit.mat.reflectivity == 0)
+        {
+          color = color + hit.mat.color * calculateLight(normal, ray.dir, pos);
+          break;
+        }
+        //Do reflection
+        color = color + hit.mat.color * calculateLight(normal, ray.dir, pos) * rprod * (1-hit.mat.reflectivity);
+
+        ray.ori = pos + BIAS * normal;
+        ray.dir = reflect(ray.dir, normal);
+        rprod = rprod * hit.mat.reflectivity;
+        depth = depth + 1;
+        continue;
+      }
+
       float fr = fresnelReflectAmount(ray.dir, normal, 1.0, hit.mat.refractivity, hit.mat.reflectivity);
 
       if (fr >= 0.5) //Reflection
@@ -511,8 +528,11 @@ vec4 trace(rayObj ray) {
         ray2.ori = pos - BIAS * normal;
         ray2.dir = refract(ray.dir, normal, 1.0 / hit.mat.refractivity);
         vec4 refractColor = secondaryTrace(ray2);
-        color = color + (reflectColor * fr + refractColor * (1 - fr));
+        vec4 fresnelColor = reflectColor * fr + refractColor * (1 - fr) * hit.mat.transparency;
+        vec4 materialColor = hit.mat.color * calculateLight(normal, ray.dir, pos) * tprod * (1-hit.mat.transparency);
+        color = color + fresnelColor + materialColor;
         tprod = tprod * hit.mat.transparency;
+        break; //The two split rays have already done the rest of the recursion/iteration
 
       #elif DO_REFLECTION //Reflection
         color = color + hit.mat.color * calculateLight(normal, ray.dir, pos) * rprod * (1-hit.mat.reflectivity);
