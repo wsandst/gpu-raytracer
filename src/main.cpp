@@ -47,8 +47,12 @@ int main(int argc, char** argv)
 
 	//Contents
 	//scene.addMesh("teapot2.obj", glm::vec3 {3.0, 0.1, 3.0}, glm::vec4 {1, 0.1, 0.1, 1.0}, 0.03);
-	scene.addSphere(glm::vec3 {5.0, 1.3, 7.0}, 1.2, glm::vec4 {0.5, 0.5, 0.5, 1.0});
+	//scene.addSphere(glm::vec3 {5.0, 1.3, 7.0}, 1.2, glm::vec4 {0.5, 0.5, 0.5, 1.0});
 	scene.addBox(glm::vec3 {9.9, 0, 0.0}, glm::vec3 {0.1, 10.0, 10.0}, glm::vec4 {1.0, 0.9, 0.9, 1.0}, 1.0, 0.9, 1.2); //Window to Cornell Box
+	//Reflection example
+	scene.addBox(glm::vec3 {2.5, 0.1, 3.0}, glm::vec3 {2.0, 2.0, 1.5}, glm::vec4 {1.0, 0.9, 0.9, 1.0}, 1.0, 0.9, 1.3); //Glass box
+	scene.addMesh("rotatedrod.obj", glm::vec3 {3.5, 0, 1.75}, glm::vec4 {0.3, 0.3, 0.3, 1}, 0.025); //Rotated rod
+	//scene.addBox(glm::vec3 {3.45, 0.1, 3.45}, glm::vec3 {0.1, 3.0, 0.1}, glm::vec4 {0.3, 0.3, 0.3, 1.0}); //Solid box rod
 	//scene.addSphere(glm::vec3 {5.0, 1.3, 3.0}, 1.2, glm::vec4 {0.5, 0.5, 0.5, 1.0}, 0.0, 1.0, 0.4);
 
 	//Renderer setup

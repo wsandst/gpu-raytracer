@@ -104,7 +104,7 @@ struct lightRecord //Summed for all lights
   vec3 specular;
 };
 
-
+//Helper functions
 bool fuzzy_equals(float a, float b)
 {
   if (abs(a - b) < FLOAT_COMPARISON_PRECISION) return true;
@@ -171,7 +171,6 @@ vec3 triangleNormal(vec3 dir, int i, float u, float v) //Barycentric coordinates
   #endif
 
 }
-
 
 //Intersect functions. Determines if a ray hits a certain object.
 //t is the location of the hit. Can get it as a point through the function: ray.ori + ray.dir * t
@@ -257,6 +256,7 @@ bool intersectTriangle(rayObj ray, vec3 v1, vec3 v0, vec3 v2, out hitRecord hit,
         return false;
 }
 
+//Hybrid of intersectBox and intersectTriangle basically
 bool intersectMesh(rayObj ray, object obj, out hitRecord hit)
 {
   //Go through triangles in the vertices and check for intersections
@@ -309,6 +309,7 @@ bool intersect(rayObj ray, object obj, out hitRecord hit)
   }
 }
 
+//Determine how illuminated the point is by tracing rays to all lights
 lightRecord traceShadow(vec3 point, vec3 normal, vec3 dir) //Check whether ray intersects with light source
 {
   rayObj ray;
@@ -342,7 +343,7 @@ lightRecord traceShadow(vec3 point, vec3 normal, vec3 dir) //Check whether ray i
     }
     if (tprod > 0) //Calculate light intensity from this light
     {
-      if (lights[j].type == LIGHT_TYPE_POINT) //
+      if (lights[j].type == LIGHT_TYPE_POINT) //Calculate light intensity for point light. Store in tprod to save variables.
         tprod = lights[j].intensity / (4 * M_PI * maxDistance); 
       lightRcrd.diffuse += max(dot(normal, lightDir), 0.0) * lights[j].color * tprod;
 
@@ -376,9 +377,9 @@ float fresnelReflectAmount(vec3 incident, vec3 normal, float n1, float n2, float
     return ret;
 }
 
+//Calculate illumination of points using the Phong Illumination Model and shadows using rays
 vec4 calculateLight(vec3 normal, vec3 dir, vec3 pos)
-{ //Direction for the sunlight
-
+{
     lightRecord lightRcrd = traceShadow(pos, normal, dir);
 
     vec3 ambient = vec3(AMBIENT_STRENGTH);
@@ -390,6 +391,7 @@ vec4 calculateLight(vec3 normal, vec3 dir, vec3 pos)
     #endif
 }
 
+//Check for ray intersections and return whether the ray hits anything. Store details regarding the closest hit in hitRecord.
 bool rayHit(rayObj ray, out hitRecord hit) {
     hit.t = MAX_SCENE_BOUNDS;
     hitRecord tempHit;
@@ -407,7 +409,7 @@ bool rayHit(rayObj ray, out hitRecord hit) {
     return hasHit;
 }
 
-//The poor mans recursion - two almost identical functions to perform 1 level of recursion
+//The poor mans recursion - two almost identical functions to perform 1 level of recursion in GLSL
 vec4 secondaryTrace(rayObj ray) {
   int depth = 0;
 
@@ -427,9 +429,9 @@ vec4 secondaryTrace(rayObj ray) {
       vec3 pos = getRayPos(ray, hit.t);
       vec3 normal = hit.normal;
 
-      if (hit.mat.transparency == 0) //No reflectivity, no need to bounce anymore
+      if (hit.mat.transparency == 0) //No transparency, no need to check for refraction
       {
-        if (hit.mat.reflectivity == 0)
+        if (hit.mat.reflectivity == 0) //No reflectivity, no need to check for reflection
         {
           color = color + hit.mat.color * calculateLight(normal, ray.dir, pos);
           break;
@@ -500,9 +502,9 @@ vec4 trace(rayObj ray) {
 
       #if DO_FRESNEL //Do both reflection and refraction
 
-        if (hit.mat.transparency == 0) //No reflectivity, no need to bounce anymore
+      if (hit.mat.transparency == 0) //No transparency, no need to check for refraction
         {
-          if (hit.mat.reflectivity == 0)
+          if (hit.mat.reflectivity == 0) //No reflectivity, no need to check for reflection
           {
             color = color + hit.mat.color * calculateLight(normal, ray.dir, pos);
             break;
@@ -532,7 +534,7 @@ vec4 trace(rayObj ray) {
         vec4 materialColor = hit.mat.color * calculateLight(normal, ray.dir, pos) * tprod * (1-hit.mat.transparency);
         color = color + fresnelColor + materialColor;
         tprod = tprod * hit.mat.transparency;
-        break; //The two split rays have already done the rest of the recursion/iteration
+        break; //The two split rays have already done the rest of the recursion/iteration, fine to break here
 
       #elif DO_REFLECTION //Reflection
         color = color + hit.mat.color * calculateLight(normal, ray.dir, pos) * rprod * (1-hit.mat.reflectivity);
@@ -545,7 +547,7 @@ vec4 trace(rayObj ray) {
         
       #elif DO_REFRACTION
         color = color + hit.mat.color * calculateLight(normal, ray.dir, pos) * tprod * (1-hit.mat.transparency);
-        if (hit.mat.transparency == 0) //No reflectivity, no need to bounce anymore
+        if (hit.mat.transparency == 0) //No transparency, no need to bounce anymore
           break;
 
         ray.ori = pos - BIAS * normal;
@@ -570,6 +572,7 @@ vec4 trace(rayObj ray) {
 
 layout (local_size_x = 16, local_size_y = 8) in;
 void main(void) {
+  //Generate the perspective correct ray from the pixel position.
   ivec2 pix = ivec2(gl_GlobalInvocationID.xy);
   ivec2 size = imageSize(framebuffer);
   if (pix.x >= size.x || pix.y >= size.y) {
@@ -578,6 +581,8 @@ void main(void) {
   vec2 pos = vec2(pix) / vec2(size.x - 1, size.y - 1);
   vec3 dir = normalize(mix(mix(ray00, ray01, pos.y), mix(ray10, ray11, pos.y), pos.x));
   rayObj ray = rayObj(dir, eye);
+  //Trace the ray
   vec4 color = trace(ray);
+  //Store resulting color in the framebuffer
   imageStore(framebuffer, pix, color);
 }
