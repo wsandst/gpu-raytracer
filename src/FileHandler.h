@@ -211,7 +211,6 @@ public:
 					//normalize(n[i][0], n[i][1], n[i][2]);
 					normals.insert(normals.end(), {n[i][0], n[i][1], n[i][2], 0});
 				}
-				std::cout << x << " " << y << " " << z << "\n";
 			}
 		}
 		}

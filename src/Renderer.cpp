@@ -56,14 +56,6 @@ void Renderer::drawPathTracer()
 {
 	pathTracerComputeShader.use();
 
-	int framebufferTexLocation = glGetUniformLocation(pathTracerComputeShader.ID, "framebuffer");
-	int skyBoxTexLocation = glGetUniformLocation(pathTracerComputeShader.ID, "skybox");
-	int vertexBufferLocation = glGetUniformLocation(pathTracerComputeShader.ID, "objectVertexBuffer");
-	int normalBufferLocation = glGetUniformLocation(pathTracerComputeShader.ID, "objectNormalBuffer");
-	glUniform1i(framebufferTexLocation, 0);
-	glUniform1i(skyBoxTexLocation, 1);
-	glUniform1i(vertexBufferLocation, 2);
-	glUniform1i(normalBufferLocation, 3);
 	//Set corner ray uniforms to give the program the view
 	pathTracerComputeShader.setVec3("eye", camera.getPosition());
 	pathTracerComputeShader.setVec3("ray00", camera.ray00);
@@ -82,6 +74,9 @@ void Renderer::drawPathTracer()
 
 	glActiveTexture(GL_TEXTURE3);
 	glBindTexture(GL_TEXTURE_BUFFER, normalBufferTex);
+
+	glActiveTexture(GL_TEXTURE4);
+	glBindTexture(GL_TEXTURE_BUFFER, boundingBoxBufferTex);
 
 	 // launch compute shaders!
 	glDispatchCompute((GLuint)windowWidth*MSAALevel, (GLuint)windowHeight*MSAALevel, 1);
@@ -198,6 +193,14 @@ void Renderer::initPathTracer()
 	glBindTexture(GL_TEXTURE_BUFFER, normalBufferTex);
 	glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA32F_ARB, normalBuffer);
 
+	//Object vertex bounding boxes samplerBuffer
+	glGenBuffers(1, &boundingBoxBuffer);
+	glBindBuffer(GL_TEXTURE_BUFFER, boundingBoxBuffer);
+	glBufferData(GL_TEXTURE_BUFFER, sizeof(float)*scene.boundingBoxes.size(), &scene.boundingBoxes[0], GL_STATIC_DRAW);
+
+	glGenTextures(1, &boundingBoxBufferTex);
+	glBindTexture(GL_TEXTURE_BUFFER, boundingBoxBufferTex);
+	glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA32F_ARB, boundingBoxBuffer);
 
 	//Load objects
 	loadObjects();
@@ -246,6 +249,18 @@ void Renderer::loadObjects()
 	pathTracerComputeShader.setInt("lightCount", scene.lights.size());
 	pathTracerComputeShader.setObjects("objects", scene.objects);
 	pathTracerComputeShader.setLights("lights", scene.lights);
+
+	//Buffers
+	int framebufferTexLocation = glGetUniformLocation(pathTracerComputeShader.ID, "framebuffer");
+	int skyBoxTexLocation = glGetUniformLocation(pathTracerComputeShader.ID, "skybox");
+	int vertexBufferLocation = glGetUniformLocation(pathTracerComputeShader.ID, "objectVertexBuffer");
+	int normalBufferLocation = glGetUniformLocation(pathTracerComputeShader.ID, "objectNormalBuffer");
+	int boundingBoxBufferLocation = glGetUniformLocation(pathTracerComputeShader.ID, "objectBoundingBoxBuffer");
+	glUniform1i(framebufferTexLocation, 0);
+	glUniform1i(skyBoxTexLocation, 1);
+	glUniform1i(vertexBufferLocation, 2);
+	glUniform1i(normalBufferLocation, 3);
+	glUniform1i(boundingBoxBufferLocation, 4);
 }
 
 void Renderer::toggleFullscreen() {

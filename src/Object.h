@@ -27,8 +27,8 @@ struct shaderObject //Struct to be sent in to the compute shader, represents sha
     GLfloat pos[3] = {0,0,0};
     shaderMaterial mat = shaderMaterial();
     //Mesh
-    GLint vStart = 0;
-    GLint vEnd = 0;
+    GLint bbStart = 0;
+    GLint bbEnd = 0;
     //Spheres
     GLfloat scale = 1; //Radius for spheres, scaling factor for everything else
     //Boxes
@@ -50,12 +50,12 @@ struct shaderObject //Struct to be sent in to the compute shader, represents sha
         this->bMin[0] = bMin.x, this->bMin[1] = bMin.y, this->bMin[2] = bMin.z;
         this->scale = scale;
     }
-    void setMesh(glm::vec3 pos, int vStart, int vEnd, glm::vec3 bMax, glm::vec3 bMin = {0,0,0}, float scale = 1)
+    void setMesh(glm::vec3 pos, int bbStart, int bbEnd, glm::vec3 bMax, glm::vec3 bMin = {0,0,0}, float scale = 1)
     {
         setBox(pos, bMax, bMin); //Set bounding box
         type = TYPE_MESH;
-        this->vStart = vStart;
-        this->vEnd = vEnd;
+        this->bbStart = bbStart;
+        this->bbEnd = bbEnd;
         this->scale = scale;
     }
 };

@@ -118,8 +118,8 @@ void ComputeShader::setObject(std::string& name, const shaderObject object)
 	glUniform1f(glGetUniformLocation(ID, (name + ".mat.refractivity").c_str()), object.mat.refractivity);
 	glUniform1f(glGetUniformLocation(ID, (name + ".mat.transparency").c_str()), object.mat.transparency);
 
-	glUniform1i(glGetUniformLocation(ID, (name + ".vStart").c_str()), object.vStart);
-	glUniform1i(glGetUniformLocation(ID,(name + ".vEnd").c_str()), object.vEnd);
+	glUniform1i(glGetUniformLocation(ID, (name + ".bbStart").c_str()), object.bbStart);
+	glUniform1i(glGetUniformLocation(ID,(name + ".bbEnd").c_str()), object.bbEnd);
 
 	glUniform1f(glGetUniformLocation(ID, (name + ".scale").c_str()), object.scale);
 

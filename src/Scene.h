@@ -16,6 +16,7 @@ public:
     std::vector<shaderObject> objects = std::vector<shaderObject>();
     std::vector<GLfloat> vertices = std::vector<GLfloat>();
     std::vector<GLfloat> normals = std::vector<GLfloat>();
+    std::vector<GLfloat> boundingBoxes = std::vector<GLfloat>();
 
     //Add a sphere
     void addSphere(glm::vec3 pos, float radius, glm::vec4 color, float transparency = 0, float refractivity = 1, float reflectivity = 0)
@@ -49,13 +50,18 @@ public:
         FileHandler::loadObj(name, objVertices, objNormals, min, max);
         //Combine loaded vertices with the total scene vertices which are sent into the compute shader
         int vertexCount = vertices.size() / 3;
-        object.setMesh(pos, vertexCount, vertexCount + objVertices.size() / 3, max, min, scale);
+        //object.setMesh(pos, vertexCount, vertexCount + objVertices.size() / 3, max, min, scale);
+        object.setMesh(pos, 0, 6, max, min, scale);
         vertices.insert(vertices.end(), objVertices.begin(), objVertices.end());
         normals.insert(normals.end(), objNormals.begin(), objNormals.end());
 
         object.mat.setColor(color);
         object.mat.transparency = transparency, object.mat.reflectivity = reflectivity, object.mat.refractivity = refractivity;
         objects.push_back(object);
+
+
+        addBoundingBox(glm::vec3 {-71.8925323, 0, -47.9283562}, glm::vec3 {82.2939987, 79.0065613, 47.9283562}, vertexCount, vertexCount + objVertices.size() / (3*2));
+	    addBoundingBox(glm::vec3 {-71.8925323, 180, -47.9283562}, glm::vec3 {82.2939987, 79.0065613, 47.9283562}, vertexCount + objVertices.size() / (3*2), vertexCount + objVertices.size() / 3);
     }
 
     //Add a directional light source
@@ -72,6 +78,12 @@ public:
         shaderLight light;
         light.set(LIGHT_TYPE_POINT, pos, color, intensity);
         lights.push_back(light);
+    }
+
+    void addBoundingBox(glm::vec3 min, glm::vec3 max, int vStart, int vEnd)
+    {
+        std::vector<GLfloat> bbBox = {min.x, min.y, min.z, 0, max.x, max.y, max.z, 0, float(vStart), float(vEnd), 0, 0};
+        boundingBoxes.insert(boundingBoxes.end(), bbBox.begin(), bbBox.end());
     }
 
     Scene(/* args */) {}

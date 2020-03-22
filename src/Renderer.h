@@ -27,7 +27,7 @@ public:
 	int screenResHeight, screenResWidth;
 	bool isFullScreen = false;
 	bool borderlessFullScreen = false;
-	const int MSAALevel = 2; //MS Antialiasing: 1 for none, 2 for 4x, 4 for 16x
+	const int MSAALevel = 1; //MS Antialiasing: 1 for none, 2 for 4x, 4 for 16x
 
 	enum RenderType {PathTracer, Rasterizer};
 	RenderType renderType = PathTracer;
@@ -79,7 +79,7 @@ private:
 	std::vector<GeometryVBO> geometryVBOs;
 
     SDL_GLContext glContext;
-    unsigned int VAO, VBO, textureOutput, skyboxTex, vertexBuffer, vertexBufferTex, normalBuffer, normalBufferTex;
+    unsigned int VAO, VBO, textureOutput, skyboxTex, vertexBuffer, vertexBufferTex, normalBuffer, normalBufferTex, boundingBoxBuffer, boundingBoxBufferTex;
     float lastFrame = 0.0f;
 
     void initOpenGL();
