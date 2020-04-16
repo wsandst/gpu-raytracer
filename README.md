@@ -4,8 +4,6 @@ Implemented using OpenGL Compute Shaders and C++.
 ## Todo 
 Implement Hierarchical Bounding Volumes to speed up intersection testing  
 Add texture support  
-Add support for multiple lights  
-Fix Fresnel issues  
   
 Future ideas:
 Create a more physically based pathtracer with multiple samples, which would allow for more glossy items and soft shadows. It would however negatively impact other real-time aspects of the Pathtracer.  
