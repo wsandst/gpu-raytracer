@@ -15,10 +15,10 @@ set(USING_COPY TRUE)
 # Project setup
 cmake_minimum_required(VERSION 3.10)
 
-project(gpu-pathtracer
+project(gpu-raytracer
     LANGUAGES C CXX
     VERSION 1.0.0
-    DESCRIPTION "GPU Compute Shader Pathtracer"
+    DESCRIPTION "GPU Compute Shader Raytracer"
 )
 
 # Compiler flags

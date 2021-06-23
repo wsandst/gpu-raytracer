@@ -1,6 +1,8 @@
 # Real-time GPU Raytracer using OpenGL Compute Shaders
 A real-time GPU Raytracer, implemented using OpenGL Compute Shaders and C++. It has support for reflections, refractions, transparency and fresnel effects. It support multiple point and directional lights and hard shadows. It can display three different types of objects - spheres, boxes and meshes (loaded from an .obj file). The meshes are quite slow as no bounding volumes are currently used. The fresnel effects are also quite slow due to recursion limitations in OpenGL.
    
+# [Video showcase](https://www.youtube.com/watch?v=Cn4bBsMrems&t=40s)
+
 ## Dependencies  
 **SDL2** - for creating OpenGL context and handling input  
 **GLEW** - needed for OpenGL Contex  
