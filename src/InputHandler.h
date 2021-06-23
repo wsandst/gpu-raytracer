@@ -7,7 +7,7 @@ class InputHandler
 private:
 	SDL_Event sdlEvent;
 public:
-	float sensitivity = 0.5;
+	float sensitivity = 0.4;
 	bool exit = false;
 	bool windowContext = true;
 

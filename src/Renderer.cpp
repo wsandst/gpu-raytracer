@@ -294,3 +294,43 @@ void Renderer::resizeWindow(int width, int height)
 	windowHeight = height;
 	updateResolution();
 }
+
+///@brief Make a screenshot of the screen and save it to a file in the executable directory, named after the current date and time
+void Renderer::screenshot()
+{
+	//Get timestamp string
+	std::time_t t = std::time(0);   // get time now
+    std::tm* now = std::localtime(&t);
+
+	std::string date = std::to_string(now->tm_year + 1900)
+         + (now->tm_mon < 9 ? "0" : "") + std::to_string(now->tm_mon + 1)
+         + (now->tm_mday < 10 ? "0" : "") + std::to_string(now->tm_mday)
+		 + "_"
+		 + (now->tm_hour < 10 ? "0" : "") + std::to_string(now->tm_hour)
+		 + (now->tm_min < 10 ? "0" : "") + std::to_string(now->tm_min)
+		 + (now->tm_sec < 10 ? "0" : "") + std::to_string(now->tm_sec)
+		 + ".png";
+
+	///OpenGL screen is flipped vertically
+	stbi_flip_vertically_on_write(1);
+
+	//Retrieve a bitmap array of the screen from OpeNGL
+	GLint viewport[4];
+    glGetIntegerv(GL_VIEWPORT, viewport);
+
+    int x = viewport[0];
+    int y = viewport[1];
+    int width = viewport[2];
+    int height = viewport[3];
+
+    std::vector<char> data(width * height * 3);
+
+    glPixelStorei(GL_PACK_ALIGNMENT, 1);
+    glReadPixels(x, y, width, height, GL_RGB, GL_UNSIGNED_BYTE, &data[0]);
+
+	//Write the bitmap array to file as png
+    int saved = stbi_write_png(date.data(), width, height, 3, &data[0], 0);
+
+	std::cout << "Saved screenshot as " << date << "\n";
+
+}

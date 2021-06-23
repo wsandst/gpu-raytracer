@@ -8,6 +8,8 @@
 
 #include "glm/glm.hpp"
 
+#include "stb_image_write.h"
+
 #include "Shader.h"
 #include "ComputeShader.h"
 #include "Camera.h"
@@ -17,7 +19,8 @@
 #include "Scene.h"
 
 #include <vector>
-#include <unordered_map>
+#include <algorithm>
+#include <chrono>
 
 class Renderer {
 public:
@@ -27,7 +30,7 @@ public:
 	int screenResHeight, screenResWidth;
 	bool isFullScreen = false;
 	bool borderlessFullScreen = false;
-	const int MSAALevel = 2; //MS Antialiasing: 1 for none, 2 for 4x, 4 for 16x
+	const int MSAALevel = 1; //MS Antialiasing: 1 for none, 2 for 4x, 4 for 16x
 
 	enum RenderType {PathTracer, Rasterizer};
 	RenderType renderType = PathTracer;
@@ -71,6 +74,8 @@ public:
 	void resizeWindow(int width, int height);
 
 	void requestShaderReload();
+
+	void screenshot();
 
 private:
     Shader screenTextureShader, rasterizerShader;

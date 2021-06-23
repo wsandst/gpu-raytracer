@@ -49,6 +49,11 @@ void InputHandler::handleInput(float deltaTime)
 				std::cout << "Camera pos: x: " << camera.getPosition().x << " y: " << camera.getPosition().y << " z: " << camera.getPosition().z << "\n";
 				break;
 
+			case SDLK_F2: //Take screenshot
+				std::cout << "F2: Taking screenshot\n";
+				renderer.screenshot();
+				break;
+
 			case SDLK_F11: //Toggle fullscreen
 				std::cout << "Fullscreen toggled" << "\n";
 				renderer.toggleFullscreen();

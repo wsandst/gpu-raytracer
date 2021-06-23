@@ -52,10 +52,10 @@ struct light{
 };
 
 //Raycasting settings
-#define MAX_RAY_DEPTH 10
-#define DO_REFRACTION 1  // 0 to turn off refraction. Enabling this also turns on transparency.
+#define MAX_RAY_DEPTH 100
+#define DO_REFRACTION 0  // 0 to turn off refraction. Enabling this also turns on transparency.
 #define DO_REFLECTION 1  // 0 to turn off reflectivity
-#define DO_FRESNEL    1  // 0 to turn off fresnel. fresnel will only show up if reflectivity is also on.
+#define DO_FRESNEL    0  // 0 to turn off fresnel. fresnel will only show up if reflectivity is also on.
 #define DO_SHADOWS    1
 #define DO_LIGHT      1
 #define DOUBLE_SIDED  1  // Do rays hit objects entering from the "inside"?
@@ -70,7 +70,7 @@ struct light{
 
 //Object definitions
 #define MAX_SCENE_BOUNDS 1000.0
-#define MAX_OBJECT_COUNT 10
+#define MAX_OBJECT_COUNT 40
 #define MAX_LIGHT_COUNT 10
 
 
@@ -502,7 +502,7 @@ vec4 trace(rayObj ray) {
 
       #if DO_FRESNEL //Do both reflection and refraction
 
-      if (hit.mat.transparency == 0) //No transparency, no need to check for refraction
+        if (hit.mat.transparency == 0) //No transparency, no need to check for refraction
         {
           if (hit.mat.reflectivity == 0) //No reflectivity, no need to check for reflection
           {
